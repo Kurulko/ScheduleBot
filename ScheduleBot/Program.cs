@@ -1,15 +1,21 @@
-﻿using ScheduleBot.Bot;
-using ScheduleBot.Enums;
+﻿using ScheduleBot;
+using ScheduleBot.Bot;
+using ScheduleBot.Database;
+using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
-string tgToken = "5844406785:AAHA8FKtl-gWsaRJXC8IUP8dkKCid5me-nY";
+using ScheduleContext db = new();
+SeedData.SeedDb(db);
+
+string tgToken = SettingsTelegram.Token;
 StartBot bot = new(tgToken);
 
 CancellationTokenSource cts = new();
-bot.StartReceivingAsync(cts);
+await bot.StartReceivingAsync(cts);
 
 Console.ReadLine();
 

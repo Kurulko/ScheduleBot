@@ -1,20 +1,22 @@
 ﻿using Azure;
-using ScheduleBot.Enums;
+using ScheduleBot.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ScheduleBot.Bot;
 
 public class StartBot
 {
-    TelegramBotClient bot;
+    readonly TelegramBotClient bot;
     public StartBot(string tgToken)
 		=> bot = new(tgToken);
     
@@ -27,7 +29,7 @@ public class StartBot
     public async Task StartReceivingAsync(CancellationTokenSource cts)
     {
         bot.StartReceiving(
-            updateHandler: HandleUpdateAsync, 
+            updateHandler: (ITelegramBotClient bot, Update update, CancellationToken _) => HandleUpdateAsync(bot, update, cts), 
             pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(bot, exc, cts), 
             receiverOptions, 
             cts.Token);
@@ -37,19 +39,25 @@ public class StartBot
         Console.WriteLine($"\"{fName}\" started listening ...");
     }
 
-    async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken _)
+    async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationTokenSource cts)
     {
-        if (update.Message is not { } message || message.Text is not { } messageText)
-            return;
-        
-        if (Actions.TryParseMode(messageText, out Mode? mode))
+        if (update.Message is { } message && message.Text is { } messageText)
         {
-            string respond = Actions.DoAction(mode!.Value);
-            await bot.SendTextMessageAsync(update.Message.Chat.Id, respond);
-        }
-        else
-        {
-            await bot.SendTextMessageAsync(update.Message.Chat.Id, messageText);
+            int replyToMessageId = message.MessageId;
+            long chatId = message.Chat.Id;
+            try
+            {
+                await BotActions.DoAction(bot, messageText, chatId, replyToMessageId,  cts);
+            }
+            catch(BotScheduleException botExc)
+            {
+                await bot.SendTextMessageAsync(chatId, $"<b>{botExc.Message}</b>", ParseMode.Html, replyToMessageId : replyToMessageId, cancellationToken: cts.Token);
+            }
+            catch(Exception exc)
+            {
+                Console.WriteLine($"Error: {exc.Message}");
+                await StopBotAsync(cts);
+            }
         }
     }
     
