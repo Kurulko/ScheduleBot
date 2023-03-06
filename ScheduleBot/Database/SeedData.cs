@@ -44,7 +44,6 @@ public static class SeedData
             db.SaveChanges();
         }
 
-
         //if (/*!db.SubjectTeacher.Any()*/false)
         //{
         //    IEnumerable<SubjectTeacher> subjectTeachers = GetSubjectsTeachers();
@@ -132,7 +131,29 @@ public static class SeedData
     static IEnumerable<TimeLesson> UpdateTimeLessons(IEnumerable<TimeLesson> timeLessons)
     {
         IList<TimeLesson> timeLessonsList = timeLessons.ToList();
+        int numerator = 28, denominator = 28 * 2;
 
+        timeLessonsList[0] = GetTimeLesson(timeLessonsList[0], 1, 1, 1);
+        timeLessonsList[1 + numerator] = GetTimeLesson(timeLessonsList[1 + numerator], 1, 1, 1);
+        timeLessonsList[1 + denominator] = GetTimeLesson(timeLessonsList[1 + denominator], 1, 2, 2);
+        timeLessonsList[2] = GetTimeLesson(timeLessonsList[2], 3, 3, 3);
+        timeLessonsList[3] = GetTimeLesson(timeLessonsList[3], 2, 0, 0);
+        timeLessonsList[4] = GetTimeLesson(timeLessonsList[4], 4, 4, 4);
+        timeLessonsList[5] = GetTimeLesson(timeLessonsList[5], 1, 1, 1);
+        timeLessonsList[6] = GetTimeLesson(timeLessonsList[6], 5, 5, 5);
+        timeLessonsList[7] = GetTimeLesson(timeLessonsList[7], 3, 3, 3);
+        timeLessonsList[8] = GetTimeLesson(timeLessonsList[8], 1, 2, 2);
+        timeLessonsList[9] = GetTimeLesson(timeLessonsList[9], 5, 5, 5);
+        timeLessonsList[10 + numerator] = GetTimeLesson(timeLessonsList[10 + numerator], 7, 0, 0);
+        timeLessonsList[10 + denominator] = GetTimeLesson(timeLessonsList[10 + denominator], 3, 0, 0);
+        timeLessonsList[12] = GetTimeLesson(timeLessonsList[12], 6, 6, 6);
+        timeLessonsList[13 + denominator] = GetTimeLesson(timeLessonsList[13 + denominator], 6, 7, 7);
+        timeLessonsList[14] = GetTimeLesson(timeLessonsList[14], 7, 5, 9);
+        timeLessonsList[15] = GetTimeLesson(timeLessonsList[15], 8, 8, 8);
+        timeLessonsList[16] = GetTimeLesson(timeLessonsList[16], 8, 8, 8);
+        timeLessonsList[17 + numerator] = GetTimeLesson(timeLessonsList[17 + numerator], 8, 8, 8);
+        timeLessonsList[17 + denominator] = GetTimeLesson(timeLessonsList[17 + denominator], 7, 5, 9);
+        timeLessonsList[18] = GetTimeLesson(timeLessonsList[18], 7, 5, 9);
 
         return timeLessonsList;
     }

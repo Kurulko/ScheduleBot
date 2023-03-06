@@ -24,9 +24,9 @@ public class SubjectTeacher
 }
 public enum SchWeekEnum
 {
-    Denominator,
+    Always,
     Numerator,
-    Always
+    Denominator,
 }
 
 public static class SchWeekEnumExtensions

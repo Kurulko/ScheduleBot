@@ -129,7 +129,7 @@ public record LessonBotCommands : BotCommands
 
     (SubjectTeacher?, Subject?, Teacher?) GetSubjectsTeachersByTimeLesson(TimeLesson time)
     {
-        SubjectTeacher? subjectTeacher = db.SubjectTeacher.Include(st => st.Conference).Include(st => st.TimeLesson).FirstOrDefault(st => st.TimeLesson == time);
+        SubjectTeacher? subjectTeacher = default/*db.SubjectTeacher.Include(st => st.Conference).Include(st => st.TimeLesson).FirstOrDefault(st => st.TimeLesson == time)*/;
         if (subjectTeacher is not null)
         {
             Subject? subject = db.Subjects.FirstOrDefault(s => s.Id == subjectTeacher.SubjectId);
