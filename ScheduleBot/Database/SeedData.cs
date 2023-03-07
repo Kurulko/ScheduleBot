@@ -92,15 +92,15 @@ public static class SeedData
     {
         IEnumerable<Conference> conferences = new List<Conference>()
         {
-            new Conference(){ /*Id = 1,*/ Link = "https://meet.google.com/kry-bfkp-uzd"},
-            new Conference(){ /*Id = 2,*/ Link = "https://knu-ua.zoom.us/j/83654313639?pwd=Qk5adnhnRWpEUWp6UU1rZUd4Z2xZZz09"},
-            new Conference(){ /*Id = 3,*/ Link = "https://us04web.zoom.us/j/7996346642?pwd=U1RLSmdKL0dzdGthNzlMQmo5NlBidz09"},
-            new Conference(){ /*Id = 4,*/ Link = "https://us04web.zoom.us/wc/7161537424/join"},
-            new Conference(){ /*Id = 5,*/ Link = "https://meet.google.com/dff-dvpn-iqw"},
-            new Conference(){ /*Id = 6,*/ Link = "https://us02web.zoom.us/j/9714836644?pwd=LzVLb1JmVlM4UkZRd3Q5dG92UzlHZz09"},
-            new Conference(){ /*Id = 7,*/ Link = "https://us04web.zoom.us/j/5609464030?pwd=jSMPBx0G8OKgpacftvUKaqZFht7P70.1"},
-            new Conference(){ /*Id = 8,*/ Link = "https://meet.google.com/ezj-uhsi-zud"},
-            new Conference(){ /*Id = 9,*/ Link = "https://meet.google.com/xqw-ccge-rip"},
+            new Conference(){ /*Id = 1,*/SubjectId = 1, TeacherId = 1, Link = "https://meet.google.com/kry-bfkp-uzd" },
+            new Conference(){ /*Id = 2,*/SubjectId = 1, TeacherId = 2, Link = "https://knu-ua.zoom.us/j/83654313639?pwd=Qk5adnhnRWpEUWp6UU1rZUd4Z2xZZz09"},
+            new Conference(){ /*Id = 3,*/SubjectId = 3, TeacherId = 3, Link = "https://us04web.zoom.us/j/7996346642?pwd=U1RLSmdKL0dzdGthNzlMQmo5NlBidz09"},
+            new Conference(){ /*Id = 4,*/SubjectId = 4, TeacherId = 4, Link = "https://us04web.zoom.us/wc/7161537424/join"},
+            new Conference(){ /*Id = 5,*/SubjectId = 5, TeacherId = 5, Link = "https://meet.google.com/dff-dvpn-iqw"},
+            new Conference(){ /*Id = 6,*/SubjectId = 6, TeacherId = 6, Link = "https://us02web.zoom.us/j/9714836644?pwd=LzVLb1JmVlM4UkZRd3Q5dG92UzlHZz09"},
+            new Conference(){ /*Id = 7,*/SubjectId = 6, TeacherId = 7, Link = "https://us04web.zoom.us/j/5609464030?pwd=jSMPBx0G8OKgpacftvUKaqZFht7P70.1"},
+            new Conference(){ /*Id = 8,*/SubjectId = 8, TeacherId = 8, Link = "https://meet.google.com/ezj-uhsi-zud"},
+            new Conference(){ /*Id = 9,*/SubjectId = 7, TeacherId = 5, Link = "https://meet.google.com/xqw-ccge-rip"},
         };
         return conferences;
     }
