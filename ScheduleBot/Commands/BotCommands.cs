@@ -14,40 +14,39 @@ namespace ScheduleBot.Commands;
 public abstract record BotCommands(Command Command)
 {
 
-    //Command? GetCurrentCommand(string currentName)
-    //    => Commands.FirstOrDefault(c => c.Name.ToLower() == currentName.ToLower() || currentName.ToLower() == (c.Name + nameOfBot).ToLower());
-    //Command? GetCurrentCommandByRegex(string currentName)
-    //{
-    //    Command? currentCommand = null;
-    //    var regexCommands = Commands.Where(c => c.IsRegEx);
-    //    foreach (var regexCommand in regexCommands)
-    //    {
-    //        Regex regex = new(regexCommand.RegEx!);
-    //        if (regex.IsMatch(currentName))
-    //        {
-    //            currentCommand = regexCommand;
-    //            break;
-    //        }
-    //    }
-    //    return currentCommand;
-    //}
-    //public bool IsExistCommand(string currentName)
-    //{
-    //    Command? currentCommand = GetCurrentCommand(currentName);
+    Command? IsCommand(string currentName)
+        => Command.Name.ToLower() == currentName.ToLower() || currentName.ToLower() == (Command.Name + nameOfBot).ToLower());
+    bool IsCommandByRegex(string currentName)
+    {
+        Command? currentCommand = null;
+        var regexCommands = Commands.Where(c => c.IsRegEx);
+        foreach (var regexCommand in regexCommands)
+        {
+            Regex regex = new(regexCommand.RegEx!);
+            if (regex.IsMatch(currentName))
+            {
+                currentCommand = regexCommand;
+                break;
+            }
+        }
+        return currentCommand;
+    }
+    public bool IsExistCommand(string currentName)
+    {
+        Command? currentCommand = GetCurrentCommand(currentName);
 
-    //    if (currentCommand is null)
-    //        currentCommand = GetCurrentCommandByRegex(currentName);
+        if (currentCommand is null)
+            currentCommand = GetCurrentCommandByRegex(currentName);
 
-    //    bool result = currentCommand is not null;
+        bool result = currentCommand is not null;
 
-    //    if (result)
-    //    {
-    //        CurrentCommandStr = currentName.Contains(nameOfBot) ? currentName.Replace(nameOfBot, null) : currentName;
-    //        this.currentCommand = currentCommand!;
-    //    }
+        if (result)
+        {
+            CurrentCommandStr = currentName.Contains(nameOfBot) ? currentName.Replace(nameOfBot, null) : currentName;
+        }
 
-    //    return result;
-    //}
+        return result;
+    }
 
     protected abstract string ResponseStr();
 
