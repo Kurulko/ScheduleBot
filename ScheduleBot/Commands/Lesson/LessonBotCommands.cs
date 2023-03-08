@@ -14,7 +14,6 @@ namespace ScheduleBot.Commands.Lesson;
 public abstract record LessonBotCommands : BotCommands
 {
     public LessonBotCommands(Command command) : base(command) { }
-    public string CurrentCommandStr { get; set; } = null!;
 
     protected ScheduleContext db = new();
 

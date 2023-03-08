@@ -13,40 +13,26 @@ namespace ScheduleBot.Commands;
 
 public abstract record BotCommands(Command Command)
 {
+    public string CurrentCommandStr { get; set; } = null!;
+    readonly string nameOfBot = $"@{SettingsTelegram.GetCurrentBotName().Result}";
 
-    Command? IsCommand(string currentName)
-        => Command.Name.ToLower() == currentName.ToLower() || currentName.ToLower() == (Command.Name + nameOfBot).ToLower());
-    bool IsCommandByRegex(string currentName)
-    {
-        Command? currentCommand = null;
-        var regexCommands = Commands.Where(c => c.IsRegEx);
-        foreach (var regexCommand in regexCommands)
-        {
-            Regex regex = new(regexCommand.RegEx!);
-            if (regex.IsMatch(currentName))
-            {
-                currentCommand = regexCommand;
-                break;
-            }
-        }
-        return currentCommand;
-    }
+
     public bool IsExistCommand(string currentName)
     {
-        Command? currentCommand = GetCurrentCommand(currentName);
+        bool isExistCommand = Command.IsRegEx ? IsCommandByRegex(currentName) : IsCommand(currentName);
 
-        if (currentCommand is null)
-            currentCommand = GetCurrentCommandByRegex(currentName);
-
-        bool result = currentCommand is not null;
-
-        if (result)
-        {
+        if (isExistCommand)
             CurrentCommandStr = currentName.Contains(nameOfBot) ? currentName.Replace(nameOfBot, null) : currentName;
-        }
 
-        return result;
+        return isExistCommand;
     }
+    bool IsCommand(string currentName)
+    {
+        string commandNameLow = Command.Name.ToLower(), currentNameLow = currentName.ToLower();
+        return commandNameLow == currentNameLow || currentNameLow == (commandNameLow + nameOfBot).ToLower();
+    }
+    bool IsCommandByRegex(string currentName)
+        => new Regex(Command.RegEx!, RegexOptions.IgnoreCase).IsMatch(currentName);
 
     protected abstract string ResponseStr();
 

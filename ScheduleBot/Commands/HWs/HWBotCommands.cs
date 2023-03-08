@@ -14,7 +14,6 @@ public abstract record HWBotCommands : BotCommands
 {
     public HWBotCommands(Command command) : base(command) { }
     protected ScheduleContext db = new();
-    public string CurrentCommandStr { get; set; } = null!;
 
     protected abstract string ResponseHWsStr();
 
