@@ -1,14 +1,12 @@
-﻿using System;
+﻿using ScheduleBot.Commands;
+using ScheduleBot.Bot;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types;
-using Telegram.Bot;
-using ScheduleBot.Bot;
 
-namespace ScheduleBot.Actions;
+namespace ScheduleBot.Commands.Help;
 
 public record HelpBotCommands : BotCommandsWithAllActions
 {

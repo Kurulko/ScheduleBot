@@ -9,7 +9,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace ScheduleBot.Actions;
+namespace ScheduleBot.Commands;
 
 public abstract record BotCommands(Command Command)
 {

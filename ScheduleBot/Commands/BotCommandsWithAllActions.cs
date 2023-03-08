@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScheduleBot.Actions;
+namespace ScheduleBot.Commands;
 
 public abstract record BotCommandsWithAllActions : BotCommands
 {
-    public BotCommandsWithAllActions(params Command[] commands) : base(commands) { }
+    public BotCommandsWithAllActions(Command command) : base(command) { }
     public IEnumerable<BotCommands> AllActions { get; set; } = null!;
 }

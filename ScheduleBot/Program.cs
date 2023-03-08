@@ -1,5 +1,5 @@
 ﻿using ScheduleBot;
-using ScheduleBot.Actions;
+using ScheduleBot.Commands;
 using ScheduleBot.Bot;
 using ScheduleBot.Database;
 using System.Threading;
