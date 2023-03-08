@@ -15,120 +15,27 @@ using ScheduleBot.Bot;
 using System.Text.RegularExpressions;
 using ScheduleBot.Exceptions;
 using ScheduleBot.Extensions;
+using System.Collections;
 
 namespace ScheduleBot.Actions;
 
-public record LessonBotCommands : BotCommands
+public abstract record LessonBotCommands : BotCommands
 {
-    const string currentLesson = "/current_lesson", nextLesson = "/next_lesson", previousLesson = "/previous_lesson", allLessons = "/all_lessons", somePreviousLessonRegex = @"\/previous_lesson_(\d)", somePreviousLesson = "/previous_lesson_{number}", someNextLessonRegex = @"\/next_lesson_(\d)", someNextLesson = "/next_lesson_{number}";
+    public LessonBotCommands(Command command) : base(command) { }
 
-    public LessonBotCommands() : base(new Command(currentLesson, "Current lesson", IsPopular: true, IsPeriodicallyAction: true), new Command(nextLesson, "Next lesson"), new Command(previousLesson, "Previous lesson"), new Command(allLessons, "All lessons"), new Command(somePreviousLesson, "...", somePreviousLessonRegex), new Command(someNextLesson, "...", someNextLessonRegex)) { }
+    protected ScheduleContext db = new();
 
-    ScheduleContext db = new();
+    protected abstract string ResponseLessonStr();
 
     protected override string ResponseStr()
     {
-        string response = currentCommand.Name switch
-        {
-            currentLesson => CurrentLessonStr(),
-            nextLesson => NextLessonStr(),
-            previousLesson => PreviousLessonStr(),
-            allLessons => AllLessonsStr(),
-            somePreviousLesson => SomePreviousLesson(),
-            someNextLesson => SomeNextLesson(),
-            _ => string.Empty
-        };
-
+        string response = ResponseLessonStr();
         if (string.IsNullOrEmpty(response))
             throw BotScheduleException.LessonNotFound();
-
         return response;
     }
 
-    string SomePreviousLesson()
-        => SomeLesson(false);
-    string SomeNextLesson()
-        => SomeLesson(true);
-
-
-    string SomeLesson(bool isNext)
-    {
-        Regex regex = new(currentCommand.RegEx!);
-        if (!regex.IsMatch(CurrentCommandStr))
-            throw BotScheduleException.IncorrectExpression(); ;
-
-        string numberOfLessonStr = regex.Match(CurrentCommandStr).Groups[1].Value;
-        bool result = int.TryParse(numberOfLessonStr, out int numberOfLesson);
-        if (!result)
-            throw BotScheduleException.IncorrectExpression();
-        numberOfLesson++;
-        return GetSomeLessonByNumberStr(isNext ? numberOfLesson : -1 * numberOfLesson);
-    }
-
-    bool IsNowLesson(out TimeLesson2? timeLesson)
-    {
-        timeLesson = GetTimeLessonByDateTime(DateTime.Now);
-        return timeLesson is not null;
-    }
-
-    string CurrentLessonStr()
-    {
-        bool isNowLesson = IsNowLesson(out TimeLesson2? currentTimeLesson);
-        if(!isNowLesson)
-            throw BotScheduleException.LessonNotFound();
-        return GetLessonStrByTimeLesson(currentTimeLesson!);
-    }
-
-    string NextLessonStr()
-        => GetSomeLessonByNumberStr(+1);
-
-    string PreviousLessonStr()
-    {
-        bool isNowLesson = IsNowLesson(out TimeLesson2? _);
-        return GetSomeLessonByNumberStr(isNowLesson ? -1 : 0);
-    }
-
-    string AllLessonsStr()
-    {
-        string result = string.Empty;
-
-        var timeLessons = db.TimeLessons.OrderBy(tl => tl.DayOfWeek).ToList();
-        int countOfTimeLessons = timeLessons.Count;
-
-        if(countOfTimeLessons <= 0)
-            throw BotScheduleException.LessonNotFound();
-
-        DayOfWeek currentDayOfWeek = timeLessons[0].DayOfWeek;
-        result += $"\n<b>{currentDayOfWeek}</b>\n\n";
-        for (int i = 0; i < countOfTimeLessons; i++)
-        {
-            TimeLesson2 timeLesson = (TimeLesson2)timeLessons[i];
-
-            if (timeLesson.DayOfWeek != currentDayOfWeek)
-            {
-                currentDayOfWeek = timeLesson.DayOfWeek;
-                result += $"\n<b>{currentDayOfWeek}</b>\n\n";
-            }
-
-            string response = GetLessonStrByTimeLesson(timeLesson);
-            if (!string.IsNullOrEmpty(response))
-            {
-                result += response; 
-
-                if (i != countOfTimeLessons - 1)
-                {
-                    if (timeLessons[i + 1].DayOfWeek != currentDayOfWeek)
-                        result += "\n";
-                    else
-                      result += $"\n{new string('•', 36)}\n";
-                }//ᐧ
-            }
-        }
-
-        return result;
-    }
-
-    string GetSomeLessonByNumberStr(long numberOfLection)
+    protected string GetSomeLessonByNumberStr(long numberOfLection)
     {
         TimeLesson2? lastLesson = GetLastLesson();
         if (lastLesson is null)
@@ -141,8 +48,7 @@ public record LessonBotCommands : BotCommands
 
         return GetLessonStrByTimeLesson(searchLesson);
     }
-
-    string GetLessonStrByTimeLesson(TimeLesson2 lesson)
+    protected string GetLessonStrByTimeLesson(TimeLesson2 lesson)
     {
         var (st, s, t) = GetSubjectsTeachersByTimeLesson(lesson);
         return LessonStr(st, s, t, lesson);
@@ -162,15 +68,15 @@ public record LessonBotCommands : BotCommands
         return default;
     }
 
-    TimeLesson2? GetTimeLessonByDateTime(DateTime time)
+    protected TimeLesson2? GetTimeLessonByDateTime(DateTime time)
     {
         TimeLesson? timeLesson = db.TimeLessons.Include(tl => tl.Conference).ToList().FirstOrDefault(t =>
         TimeOnly.FromDateTime(time) >= TimeOnly.FromDateTime(t.StartTime) && TimeOnly.FromDateTime(time) <= TimeOnly.FromDateTime(t.EndTime) && time.DayOfWeek == t.DayOfWeek);
-        if(timeLesson is null)
+        if (timeLesson is null)
             return default;
         return (TimeLesson2)timeLesson;
     }
-       
+
 
     (Conference?, Subject?, Teacher?) GetSubjectsTeachersByTimeLesson(TimeLesson2 time)
     {
@@ -246,5 +152,121 @@ public record LessonBotCommands : BotCommands
         }
 
         return response;
+    }
+}
+
+public record CurrentLesson_LessonBotCommands : LessonBotCommands
+{
+    public CurrentLesson_LessonBotCommands() : base(new Command("/current_lesson", "Current lesson", IsPopular: true, IsPeriodicallyAction: true)) { }
+
+    protected override string ResponseLessonStr()
+    {
+        bool isNowLesson = IsNowLesson(out TimeLesson2? currentTimeLesson);
+        if (!isNowLesson)
+            throw BotScheduleException.LessonNotFound();
+        return GetLessonStrByTimeLesson(currentTimeLesson!);
+    }
+    bool IsNowLesson(out TimeLesson2? timeLesson)
+    {
+        timeLesson = GetTimeLessonByDateTime(DateTime.Now);
+        return timeLesson is not null;
+    }
+}
+public record NextLesson_LessonBotCommands : LessonBotCommands
+{
+    public NextLesson_LessonBotCommands() : base(new Command("/next_lesson", "Next lesson")) { }
+
+    protected override string ResponseLessonStr()
+        => GetSomeLessonByNumberStr(+1);
+}
+public record PreviousLesson_LessonBotCommands : LessonBotCommands
+{
+    public PreviousLesson_LessonBotCommands() : base(new Command("/previous_lesson", "Previous lesson")) { }
+
+    protected override string ResponseLessonStr()
+    {
+        bool isNowLesson = IsNowLesson(out TimeLesson2? _);
+        return GetSomeLessonByNumberStr(isNowLesson ? -1 : 0);
+    }
+}
+public record AllLessons_LessonBotCommands : LessonBotCommands
+{
+    public AllLessons_LessonBotCommands() : base(new Command("/all_lessons", "All lessons")) { }
+
+    protected override string ResponseLessonStr()
+    {
+        string result = string.Empty;
+
+        var timeLessons = db.TimeLessons.OrderBy(tl => tl.DayOfWeek).ToList();
+        int countOfTimeLessons = timeLessons.Count;
+
+        if (countOfTimeLessons <= 0)
+            throw BotScheduleException.LessonNotFound();
+
+        DayOfWeek currentDayOfWeek = timeLessons[0].DayOfWeek;
+        result += $"\n<b>{currentDayOfWeek}</b>\n\n";
+        for (int i = 0; i < countOfTimeLessons; i++)
+        {
+            TimeLesson2 timeLesson = (TimeLesson2)timeLessons[i];
+
+            if (timeLesson.DayOfWeek != currentDayOfWeek)
+            {
+                currentDayOfWeek = timeLesson.DayOfWeek;
+                result += $"\n<b>{currentDayOfWeek}</b>\n\n";
+            }
+
+            string response = GetLessonStrByTimeLesson(timeLesson);
+            if (!string.IsNullOrEmpty(response))
+            {
+                result += response;
+
+                if (i != countOfTimeLessons - 1)
+                {
+                    if (timeLessons[i + 1].DayOfWeek != currentDayOfWeek)
+                        result += "\n";
+                    else
+                        result += $"\n{new string('•', 36)}\n";
+                }//ᐧ
+            }
+        }
+
+        return result;
+
+    }
+}
+public record SomePreviousLesson_LessonBotCommands : LessonBotCommands
+{
+    public PreviousLesson_LessonBotCommands() : base(new Command("/previous_lesson_{number}", "...", @"\/previous_lesson_(\d)")) { }
+
+    protected override string ResponseLessonStr()
+        => GetSomeLessonByNumberStr(-1);
+}
+
+public record CurrentLesson_LessonBotCommands2 : LessonBotCommands
+{
+   someNextLessonRegex = @"\/next_lesson_(\d)", someNextLesson = "/next_lesson_{number}";
+
+    public LessonBotCommands() : base(new Command(someNextLesson, "...", someNextLessonRegex)) { }
+
+
+
+    string SomePreviousLesson()
+        => SomeLesson(false);
+    string SomeNextLesson()
+        => SomeLesson(true);
+
+
+    string SomeLesson(bool isNext)
+    {
+        Regex regex = new(currentCommand.RegEx!);
+        if (!regex.IsMatch(CurrentCommandStr))
+            throw BotScheduleException.IncorrectExpression(); ;
+
+        string numberOfLessonStr = regex.Match(CurrentCommandStr).Groups[1].Value;
+        bool result = int.TryParse(numberOfLessonStr, out int numberOfLesson);
+        if (!result)
+            throw BotScheduleException.IncorrectExpression();
+        numberOfLesson++;
+        return GetSomeLessonByNumberStr(isNext ? numberOfLesson : -1 * numberOfLesson);
     }
 }

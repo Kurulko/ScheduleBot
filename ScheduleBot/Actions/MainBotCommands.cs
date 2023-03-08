@@ -16,43 +16,41 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ScheduleBot.Actions;
 
-public record MainBotCommands : BotCommandsWithAllActions
+public abstract record MainBotCommands : BotCommandsWithAllActions
 {
-    const string start = "/start", stop = "/stop";
-    public MainBotCommands() : base(new Command(start, "Start bot"), new Command(stop, "Stop bot")) { }
+    public MainBotCommands(Command command) : base(command) { }
+}
 
-    ReplyKeyboardMarkup? replyKeyboardMarkup = default;
+public record Start_MainBotCommands : MainBotCommands
+{
+    const string start = "/start";
+    public Start_MainBotCommands() : base(new Command(start, "Start bot")) { }
+
     protected override string ResponseStr()
-    {
-        string response = CurrentCommandStr.ToLower() switch
-        {
-            start => StartStr(ref replyKeyboardMarkup),
-            stop => StopStr(),
-            _ => string.Empty
-        };
+        => "Welcome to my app";
+    //string StartStr(ref ReplyKeyboardMarkup? replyKeyboardMarkup)
+    //{
+    //    if (AllActions?.Any() ?? false)
+    //    {
+    //        IEnumerable<KeyboardButton> popularActions = AllActions.Select(a => a.Commands.AsEnumerable()).Aggregate((previousCommands, currentCommands) => previousCommands.Union(currentCommands)).Where(c => c.IsPopular).Select(c => new KeyboardButton(c.Name));
+    //        replyKeyboardMarkup = new(popularActions) { ResizeKeyboard = true };
+    //    }
+    //    return "Welcome to my app";
+    //}
 
-        return response; 
-    }
+    //public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
+    //{
+    //    string responseStr = ResponseStr();
+    //    if (replyToMessageId is not null)
+    //        return await bot.SendTextMessageAsync(chatId, $"<b>{responseStr}</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+    //    return await bot.SendTextMessageAsync(chatId, $"<b>{responseStr}</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup, cancellationToken: cts.Token);
+    //}
+}
+public record Stop_MainBotCommands : MainBotCommands
+{
+    const string start = "/start";
+    public Stop_MainBotCommands() : base(new Command(start, "Start bot")) { }
 
-    public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
-    {
-        string responseStr = ResponseStr();
-        if (replyToMessageId is not null)
-            return await bot.SendTextMessageAsync(chatId, $"<b>{responseStr}</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
-        return await bot.SendTextMessageAsync(chatId, $"<b>{responseStr}</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup, cancellationToken: cts.Token);
-
-    }
-
-    string StartStr(ref ReplyKeyboardMarkup? replyKeyboardMarkup)
-    {
-        if(AllActions?.Any() ?? false)
-        {
-            IEnumerable<KeyboardButton> popularActions = AllActions.Select(a => a.Commands.AsEnumerable()).Aggregate((previousCommands, currentCommands) => previousCommands.Union(currentCommands)).Where(c => c.IsPopular).Select(c => new KeyboardButton(c.Name));
-            replyKeyboardMarkup = new(popularActions) { ResizeKeyboard = true };
-        }
-        return "Welcome to my app";
-    }
-
-    string StopStr()
-        => "Good bye!";
+    protected override string ResponseStr()
+    => "Good bye!";
 }

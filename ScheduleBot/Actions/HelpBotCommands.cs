@@ -19,14 +19,13 @@ public record HelpBotCommands : BotCommandsWithAllActions
 
     protected override string ResponseStr()
     {
-        var fCommand = Commands.First();
 
-        string response = Commands.First().Description + ": \n\n";
+        string response = Command.Description + ": \n\n";
         if (AllActions is not null && AllActions.Any())
             foreach (var action in AllActions)
-                response += string.Concat(action.Commands.Select(c => DisplayCommand(c) + "\n")) + "\n";
+                response += string.Concat(DisplayCommand(action.Command) + "\n\n");
         else
-            response += DisplayCommand(fCommand);
+            response += DisplayCommand(Command);
 
         return response;
     }
