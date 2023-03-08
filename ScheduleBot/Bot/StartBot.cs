@@ -1,11 +1,15 @@
 ﻿using Azure;
+using ScheduleBot.Database;
+using ScheduleBot.Database.Models;
 using ScheduleBot.Exceptions;
+using ServiceStack.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -16,21 +20,16 @@ namespace ScheduleBot.Bot;
 
 public class StartBot
 {
-    readonly TelegramBotClient bot;
-    public StartBot(string tgToken)
-		=> bot = new(tgToken);
-    
-    readonly ReceiverOptions receiverOptions = new ReceiverOptions()
-    {
-        AllowedUpdates = Array.Empty<UpdateType>()
-    };
-    
+    readonly ITelegramBotClient bot = SettingsTelegram.CurrentBot();
+    ScheduleContext db = new();
 
     public async Task StartReceivingAsync(CancellationTokenSource cts)
     {
+        ReceiverOptions receiverOptions = new ReceiverOptions() { AllowedUpdates = Array.Empty<UpdateType>() };
+
         bot.StartReceiving(
-            updateHandler: (ITelegramBotClient bot, Update update, CancellationToken _) => HandleUpdateAsync(bot, update, cts), 
-            pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(bot, exc, cts), 
+            updateHandler: (ITelegramBotClient bot, Update update, CancellationToken _) => HandleUpdateAsync(update, cts), 
+            pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(exc, cts), 
             receiverOptions, 
             cts.Token);
 
@@ -39,7 +38,16 @@ public class StartBot
         Console.WriteLine($"\"{fName}\" started listening ...");
     }
 
-    async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationTokenSource cts)
+    void AddTgChatToDbIfNotExist(TelegramChat tgChat)
+    {
+        if (db.Chats.FirstOrDefault(c => c.Chat == tgChat.Chat) is null)
+        {
+            db.Chats.Add(tgChat);
+            db.SaveChanges();
+        }
+    }
+
+    async Task HandleUpdateAsync(Update update, CancellationTokenSource cts)
     {
         if (update.Message is { } message && message.Text is { } messageText)
         {
@@ -47,7 +55,10 @@ public class StartBot
             long chatId = message.Chat.Id;
             try
             {
-                await BotActions.DoAction(bot, messageText, chatId, replyToMessageId,  cts);
+                TelegramChat tgChat = (TelegramChat)message.Chat;
+                AddTgChatToDbIfNotExist(tgChat);
+
+                await BotActions.DoActionAsync(bot, messageText, chatId, replyToMessageId,  cts);
             }
             catch(BotScheduleException botExc)
             {
@@ -61,7 +72,7 @@ public class StartBot
         }
     }
     
-    async Task HandlePollingErrorAsync(ITelegramBotClient bot, Exception exc, CancellationTokenSource cts)
+    async Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
     {
         Console.WriteLine($"Error: {exc.Message}");
         await StopBotAsync(cts);
@@ -73,5 +84,17 @@ public class StartBot
         string fName = me.FirstName;
         Console.WriteLine($"\"{fName}\" finished listening ...");
         cts.Cancel();
+    }
+
+    public void NotifyNewEvents(TimeSpan period, CancellationTokenSource cts)
+    {
+        TimerCallback tm = async (object state) =>
+        {
+            foreach (var chat in db.Chats.Select(c => c.Chat))
+            {
+                await BotActions.DoPeriodicallyActionsAsync(bot, chat, cts);
+            }
+        };
+        System.Threading.Timer timer = new(tm, null, 0, (int)period.TotalMilliseconds);
     }
 }

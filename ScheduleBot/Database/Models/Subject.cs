@@ -12,12 +12,9 @@ public class Subject
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
 
-    public IEnumerable<TimeLesson>? TimeLessons { get; set; }
     public IEnumerable<Conference>? Conferences { get; set; }
     public IEnumerable<Teacher>? Teachers { get; set; }
 
-    //public IEnumerable<SubjectTeacher>? SubjectTeacher { get; set; }
-    //public SubjectTeacher? SubjectTeacher { get; set; }
     public IEnumerable<HW>? HWs { get; set; }
 }
 

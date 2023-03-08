@@ -13,32 +13,39 @@ namespace ScheduleBot.Actions;
 
 public abstract record BotCommands(params Command[] Commands)
 {
-    protected string currentCommandStr = null!;
+    public string CurrentCommandStr { get; set;  } = null!;
     protected Command currentCommand = null!;
+    readonly string nameOfBot = $"@{SettingsTelegram.GetCurrentBotName().Result}";
+
+    Command? GetCurrentCommand(string currentName)
+        => Commands.FirstOrDefault(c => c.Name.ToLower() == currentName.ToLower() || currentName.ToLower() == (c.Name + nameOfBot).ToLower());
+    Command? GetCurrentCommandByRegex(string currentName)
+    {
+        Command? currentCommand = null;
+        var regexCommands = Commands.Where(c => c.IsRegEx);
+        foreach (var regexCommand in regexCommands)
+        {
+            Regex regex = new(regexCommand.RegEx!);
+            if (regex.IsMatch(currentName))
+            {
+                currentCommand = regexCommand;
+                break;
+            }
+        }
+        return currentCommand;
+    }
     public bool IsExistCommand(string currentName)
     {
-        Command? currentCommand = Commands.FirstOrDefault(c => c.Name.ToLower() == currentName.ToLower());
+        Command? currentCommand = GetCurrentCommand(currentName);
 
         if (currentCommand is null)
-        {
-            var regexCommands = Commands.Where(c => c.IsRegEx);
-            foreach (var regexCommand in regexCommands)
-            {
-                Regex regex = new(regexCommand.RegEx!);
-                if(regex.IsMatch(currentName))
-                {
-                    currentCommand = regexCommand;
-                    break;
-                }
-            }
-
-        }
+            currentCommand = GetCurrentCommandByRegex(currentName);
 
         bool result = currentCommand is not null;
 
         if (result)
         {
-            currentCommandStr = currentName;
+            CurrentCommandStr = currentName.Contains(nameOfBot) ? currentName.Replace(nameOfBot, null) : currentName;
             this.currentCommand = currentCommand!;
         }
 
@@ -47,9 +54,11 @@ public abstract record BotCommands(params Command[] Commands)
 
     protected abstract string ResponseStr();
 
-    public virtual async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, int replyToMessageId, CancellationTokenSource cts)
+    public virtual async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
     {
         string responseStr = ResponseStr();
-        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+        if(replyToMessageId is not null)
+            return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, cancellationToken: cts.Token);
     }
 }

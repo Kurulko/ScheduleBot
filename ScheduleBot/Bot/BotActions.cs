@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Azure;
 using ScheduleBot.Actions;
 using ScheduleBot.Exceptions;
 using Telegram.Bot;
@@ -22,7 +23,7 @@ public class BotActions
         return action;
     }
 
-    public static async Task DoAction(ITelegramBotClient bot, string actionName, ChatId chatId, int replyToMessageId, CancellationTokenSource cts)
+    public static async Task DoActionAsync(ITelegramBotClient bot, string actionName, ChatId chatId, int replyToMessageId, CancellationTokenSource cts)
     {
         BotCommands? action = GetActionByName(actionName);
 
@@ -32,7 +33,20 @@ public class BotActions
         if (action is BotCommandsWithAllActions botWithAllActions)
             botWithAllActions.AllActions = GetAllActions();
 
-        await action.SendResponseHtml(bot, chatId, replyToMessageId, cts);
+        await action.SendResponseHtml(bot, chatId, cts, replyToMessageId);
+    }
+
+    public static async Task DoPeriodicallyActionsAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts)
+    {
+        List<Command> commands = new();
+        var allActions = GetAllActions();
+
+        var allCommands = allActions.Select(actions => actions.Commands.Where(c => c.IsPeriodicallyAction));
+        foreach (var allCommand in allCommands)
+            commands.AddRange(allCommand);
+
+        foreach (var command in commands)
+            await allActions.First(m => m.IsExistCommand(command.Name)).SendResponseHtml(bot, chatId, cts);
     }
 }
 

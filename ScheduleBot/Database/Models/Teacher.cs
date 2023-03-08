@@ -13,11 +13,8 @@ public class Teacher
     public string LastName { get; set; } = null!;
     public string? FatherName { get; set; }
 
-    public IEnumerable<TimeLesson>? TimeLessons { get; set; }
     public IEnumerable<Conference>? Conferences { get; set; }
     public IEnumerable<Subject>? Subjects { get; set; }
 
-    //public IEnumerable<SubjectTeacher>? SubjectTeacher { get; set; }
-    //public SubjectTeacher? SubjectTeacher { get; set; }
     public IEnumerable<HW>? HWs { get; set; }
 }

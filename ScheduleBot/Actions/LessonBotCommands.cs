@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using ScheduleBot.Bot;
 using System.Text.RegularExpressions;
 using ScheduleBot.Exceptions;
+using ScheduleBot.Extensions;
 
 namespace ScheduleBot.Actions;
 
@@ -21,8 +22,7 @@ public record LessonBotCommands : BotCommands
 {
     const string currentLesson = "/current_lesson", nextLesson = "/next_lesson", previousLesson = "/previous_lesson", allLessons = "/all_lessons", somePreviousLessonRegex = @"\/previous_lesson_(\d)", somePreviousLesson = "/previous_lesson_{number}", someNextLessonRegex = @"\/next_lesson_(\d)", someNextLesson = "/next_lesson_{number}";
 
-
-    public LessonBotCommands() : base(new Command(currentLesson, "Current lesson", IsPopular: true), new Command(nextLesson, "Next lesson"), new Command(previousLesson, "Previous lesson"), new Command(allLessons, "All lessons"), new Command(somePreviousLesson, "...", somePreviousLessonRegex), new Command(someNextLesson, "...", someNextLessonRegex)) { }
+    public LessonBotCommands() : base(new Command(currentLesson, "Current lesson", IsPopular: true, IsPeriodicallyAction: true), new Command(nextLesson, "Next lesson"), new Command(previousLesson, "Previous lesson"), new Command(allLessons, "All lessons"), new Command(somePreviousLesson, "...", somePreviousLessonRegex), new Command(someNextLesson, "...", someNextLessonRegex)) { }
 
     ScheduleContext db = new();
 
@@ -42,121 +42,175 @@ public record LessonBotCommands : BotCommands
         if (string.IsNullOrEmpty(response))
             throw BotScheduleException.LessonNotFound();
 
-        return $"<b>{response}</b>";
+        return response;
     }
 
     string SomePreviousLesson()
         => SomeLesson(false);
     string SomeNextLesson()
         => SomeLesson(true);
+
+
     string SomeLesson(bool isNext)
     {
         Regex regex = new(currentCommand.RegEx!);
-        if (!regex.IsMatch(currentCommandStr))
+        if (!regex.IsMatch(CurrentCommandStr))
             throw BotScheduleException.IncorrectExpression(); ;
 
-        string numberOfLessonStr = regex.Match(currentCommandStr).Groups[1].Value;
+        string numberOfLessonStr = regex.Match(CurrentCommandStr).Groups[1].Value;
         bool result = int.TryParse(numberOfLessonStr, out int numberOfLesson);
         if (!result)
-            throw BotScheduleException.IncorrectExpression(); ;
+            throw BotScheduleException.IncorrectExpression();
+        numberOfLesson++;
         return GetSomeLessonByNumberStr(isNext ? numberOfLesson : -1 * numberOfLesson);
     }
 
+    bool IsNowLesson(out TimeLesson2? timeLesson)
+    {
+        timeLesson = GetTimeLessonByDateTime(DateTime.Now);
+        return timeLesson is not null;
+    }
+
     string CurrentLessonStr()
-        => GetSomeLessonByNumberStr(0);
+    {
+        bool isNowLesson = IsNowLesson(out TimeLesson2? currentTimeLesson);
+        if(!isNowLesson)
+            throw BotScheduleException.LessonNotFound();
+        return GetLessonStrByTimeLesson(currentTimeLesson!);
+    }
 
     string NextLessonStr()
-        => GetSomeLessonByNumberStr(+2);
+        => GetSomeLessonByNumberStr(+1);
 
     string PreviousLessonStr()
-        => GetSomeLessonByNumberStr(-2);
+    {
+        bool isNowLesson = IsNowLesson(out TimeLesson2? _);
+        return GetSomeLessonByNumberStr(isNowLesson ? -1 : 0);
+    }
 
     string AllLessonsStr()
     {
         string result = string.Empty;
 
-        var timeLessons = db.TimeLessons.ToList();
+        var timeLessons = db.TimeLessons.OrderBy(tl => tl.DayOfWeek).ToList();
         int countOfTimeLessons = timeLessons.Count;
 
+        if(countOfTimeLessons <= 0)
+            throw BotScheduleException.LessonNotFound();
+
+        DayOfWeek currentDayOfWeek = timeLessons[0].DayOfWeek;
+        result += $"\n<b>{currentDayOfWeek}</b>\n\n";
         for (int i = 0; i < countOfTimeLessons; i++)
         {
-            var (st, s, t) = GetSubjectsTeachersByTimeLesson(timeLessons[i]);
-            string response = LessonStr(st, s, t);
+            TimeLesson2 timeLesson = (TimeLesson2)timeLessons[i];
+
+            if (timeLesson.DayOfWeek != currentDayOfWeek)
+            {
+                currentDayOfWeek = timeLesson.DayOfWeek;
+                result += $"\n<b>{currentDayOfWeek}</b>\n\n";
+            }
+
+            string response = GetLessonStrByTimeLesson(timeLesson);
             if (!string.IsNullOrEmpty(response))
             {
-                result += response;
+                result += response; 
+
                 if (i != countOfTimeLessons - 1)
-                    result += $"\n{new string('-', 10)}\n";
+                {
+                    if (timeLessons[i + 1].DayOfWeek != currentDayOfWeek)
+                        result += "\n";
+                    else
+                      result += $"\n{new string('•', 36)}\n";
+                }//ᐧ
             }
         }
 
         return result;
     }
 
-    string GetSomeLessonByNumberStr(int i)
+    string GetSomeLessonByNumberStr(long numberOfLection)
     {
-        DateTime? lastLesson = GetDateTimeLastLesson();
-        if (lastLesson is not null)
-            return GetLessonStrByDateTime(lastLesson.Value.AddHours(i));
-        throw BotScheduleException.LessonNotFound(); ;
-    }
-
-    string GetLessonStrByDateTime(DateTime date)
-    {
-        TimeLesson? time = GetTimeLessonByDateTime(date);
-        if (time is null)
+        TimeLesson2? lastLesson = GetLastLesson();
+        if (lastLesson is null)
             throw BotScheduleException.LessonNotFound();
-        var (st, s, t) = GetSubjectsTeachersByTimeLesson(time);
-        return LessonStr(st, s, t);
+
+        TimeLesson2? searchLesson = (TimeLesson2?)db.TimeLessons.FirstOrDefault(tl => tl.Id == lastLesson!.Id + numberOfLection)!;
+        if (searchLesson is null)
+            throw BotScheduleException.LessonNotFound();
+
+
+        return GetLessonStrByTimeLesson(searchLesson);
     }
 
-    DateTime? GetDateTimeLastLesson()
+    string GetLessonStrByTimeLesson(TimeLesson2 lesson)
     {
-        DateTime now = DateTime.Now;
-        DateTime last = DateTime.MinValue.AddHours(now.Hour).AddMinutes(now.Minute).AddSeconds(now.Second);
+        var (st, s, t) = GetSubjectsTeachersByTimeLesson(lesson);
+        return LessonStr(st, s, t, lesson);
+    }
+
+    TimeLesson2? GetLastLesson()
+    {
+        DateTime last = DateTime.Now;
         DateTime first = db.TimeLessons.Min(tl => tl.StartTime);
         while (last >= first)
         {
-            if (GetTimeLessonByDateTime(last) is not null)
-                return last;
-            last = last.AddHours(-2);
+            TimeLesson2? timeLesson = GetTimeLessonByDateTime(last);
+            if (timeLesson is not null)
+                return timeLesson;
+            last = last.AddHours(-ScheduleSettings.LongLessonHours.TotalHours);
         }
         return default;
     }
 
-    TimeLesson? GetTimeLessonByDateTime(DateTime time)
-        => db.TimeLessons.FirstOrDefault(t => time >= t.StartTime && time <= t.StartTime && time.DayOfWeek == t.DayOfWeek);
-
-    (SubjectTeacher?, Subject?, Teacher?) GetSubjectsTeachersByTimeLesson(TimeLesson time)
+    TimeLesson2? GetTimeLessonByDateTime(DateTime time)
     {
-        SubjectTeacher? subjectTeacher = default/*db.SubjectTeacher.Include(st => st.Conference).Include(st => st.TimeLesson).FirstOrDefault(st => st.TimeLesson == time)*/;
-        if (subjectTeacher is not null)
-        {
-            Subject? subject = db.Subjects.FirstOrDefault(s => s.Id == subjectTeacher.SubjectId);
-            Teacher? teacher = db.Teachers.FirstOrDefault(t => t.Id == subjectTeacher.TeacherId);
+        TimeLesson? timeLesson = db.TimeLessons.Include(tl => tl.Conference).ToList().FirstOrDefault(t =>
+        TimeOnly.FromDateTime(time) >= TimeOnly.FromDateTime(t.StartTime) && TimeOnly.FromDateTime(time) <= TimeOnly.FromDateTime(t.EndTime) && time.DayOfWeek == t.DayOfWeek);
+        if(timeLesson is null)
+            return default;
+        return (TimeLesson2)timeLesson;
+    }
+       
 
-            return (subjectTeacher, subject, teacher);
+    (Conference?, Subject?, Teacher?) GetSubjectsTeachersByTimeLesson(TimeLesson2 time)
+    {
+        Conference? conference = db.Conferences.Include(c => c.Subject).Include(c => c.Teacher).FirstOrDefault(c => c.Id == time.ConferenceId);
+        if (conference is not null)
+        {
+            Subject? subject = db.Subjects.FirstOrDefault(s => s.Id == conference.SubjectId);
+            Teacher? teacher = db.Teachers.FirstOrDefault(t => t.Id == conference.TeacherId);
+
+            return (conference, subject, teacher);
         }
         return default;
     }
 
-    string LessonStr(SubjectTeacher? subjectTeacher, Subject? subject, Teacher? teacher)
+    string LessonStr(Conference? conference, Subject? subject, Teacher? teacher, TimeLesson2? timeLesson)
+        => SubjectStr(subject) + TeacherStr(teacher) + ConferenceStr(conference) + TimeLessonStr(timeLesson);
+
+    string SubjectStr(Subject? subject)
     {
         string response = string.Empty;
 
         if (subject is not null)
         {
             if (!string.IsNullOrEmpty(subject.Name))
-                response += $"Subject: {subject.Name}\n";
+                response += $"<b>Subject</b>: {subject.Name}\n";
 
             if (!string.IsNullOrEmpty(subject.Description))
-                response += $"Description: {subject.Description}\n";
+                response += $"<b>Description</b>: {subject.Description}\n";
         }
+
+        return response;
+    }
+    string TeacherStr(Teacher? teacher)
+    {
+        string response = string.Empty;
 
         if (teacher is not null)
         {
             if (teacher.LastName is { } teacherLastName)
-                response += $"Teacher: {teacherLastName}";
+                response += $"<b>Teacher</b>: {teacherLastName}";
 
             if (teacher.FirstName is { } teacherFirstName)
                 response += $" {teacherFirstName.First()}.";
@@ -167,28 +221,30 @@ public record LessonBotCommands : BotCommands
             response += '\n';
         }
 
-        if (subjectTeacher is not null)
+        return response;
+    }
+    string ConferenceStr(Conference? conference)
+    {
+        string response = string.Empty;
+
+        if (conference is not null && conference.Link is { } link)
+            response += $"<b>Link</b>: {link}\n";
+
+        return response;
+    }
+    string TimeLessonStr(TimeLesson2? timeLesson)
+    {
+        string response = string.Empty;
+
+        if (timeLesson is not null)
         {
-            if (subjectTeacher.Conference is { } conference && conference.Link is { } link)
-                response += $"Link: {link}\n";
+            response += $"<b>Time</b>: {timeLesson.DayOfWeek} ";
 
-            if (subjectTeacher.TimeLesson is { } timeLesson)
-            {
-                response += "Time: ";
-
-                if (timeLesson.StartTime.DayOfWeek is { } startDay)
-                    response += $"{startDay} ";
-
-                response += timeLesson.StartTime is { } start ? start : nameof(start);
-                response += " - ";
-
-                if (timeLesson.StartTime.DayOfWeek != timeLesson.EndTime.DayOfWeek)
-                    response += $"{timeLesson.EndTime.DayOfWeek} ";
-                response += timeLesson.EndTime is { } end ? end : nameof(end);
-            }
+            response += timeLesson.StartTime is { } start ? start : nameof(start);
+            response += " - ";
+            response += timeLesson.EndTime is { } end ? end : nameof(end);
         }
 
-
-        return !string.IsNullOrEmpty(response) ? $"<b>{response}</b>" : response;
+        return response;
     }
 }

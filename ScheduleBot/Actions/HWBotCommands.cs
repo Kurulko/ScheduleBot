@@ -42,7 +42,7 @@ public record HWBotCommands : BotCommands
         if(string.IsNullOrEmpty(response))
             throw BotScheduleException.HWsNotFound();
 
-        return $"<b>{response}</b>";
+        return response;
     }
 
     string DayAfterHWsStr()
@@ -52,10 +52,10 @@ public record HWBotCommands : BotCommands
     string SomeHWs(bool isNext)
     {
         Regex regex = new(currentCommand.RegEx!);
-        if (!regex.IsMatch(currentCommandStr))
+        if (!regex.IsMatch(CurrentCommandStr))
             throw BotScheduleException.IncorrectExpression(); ;
 
-        string numberOfLessonStr = regex.Match(currentCommandStr).Groups[1].Value;
+        string numberOfLessonStr = regex.Match(CurrentCommandStr).Groups[1].Value;
         bool result = int.TryParse(numberOfLessonStr, out int numberOfLesson);
         if (!result)
             throw BotScheduleException.IncorrectExpression(); ;
@@ -106,38 +106,59 @@ public record HWBotCommands : BotCommands
         {
             var (hw, subject, teacher) = valuesList[i];
 
-
-            if (subject is not null && subject.Name is { } subjectName)
-                 response += $"Subject: {subjectName}\n";
-
-            if (teacher is not null)
-            {
-                if (teacher.LastName is { } teacherLastName)
-                    response += $"Teacher: {teacherLastName}";
-
-                if (teacher.FirstName is { } teacherFirstName)
-                    response += $" {teacherFirstName.First()}.";
-
-                if (teacher.FatherName is { } teacherFatherName)
-                    response += $" {teacherFatherName.First()}.";
-
-                response += '\n';
-            }
-
-            if (hw is not null)
-            {
-                if (hw.Description is { } hwDescription)
-                    response += $"Description: {hwDescription}\n";
-
-                if (hw.Deadline is { } hwDeadline)
-                    response += $"Deadline: {hwDeadline}";
-            }
+            response += SubjectStr(subject) + TeacherStr(teacher) + HWStr(hw);
 
             if (i != count - 1)
                 response += $"\n{new string('-', 10)}\n";
         }
 
 
-        return !string.IsNullOrEmpty(response) ? $"<b>{response}</b>" : response;
+        return response;
+    }
+    
+
+    string SubjectStr(Subject? subject)
+    {
+        string response = string.Empty;
+
+        if (subject is not null && subject.Name is { } subjectName)
+            response += $"<b>Subject</b>: {subjectName}\n";
+
+        return response;
+    }
+    string TeacherStr(Teacher? teacher)
+    {
+        string response = string.Empty;
+
+        if (teacher is not null)
+        {
+            if (teacher.LastName is { } teacherLastName)
+                response += $"<b>Teacher</b>: {teacherLastName}";
+
+            if (teacher.FirstName is { } teacherFirstName)
+                response += $" {teacherFirstName.First()}.";
+
+            if (teacher.FatherName is { } teacherFatherName)
+                response += $" {teacherFatherName.First()}.";
+
+            response += '\n';
+        }
+
+        return response;
+    }
+    string HWStr(HW? hw)
+    {
+        string response = string.Empty;
+
+        if (hw is not null)
+        {
+            if (hw.Description is { } hwDescription)
+                response += $"<b>Description</b>: {hwDescription}\n";
+
+            if (hw.Deadline is { } hwDeadline)
+                response += $"<b>Deadline</b>: {string.Format("{0: dd.MM.yyyy hh:mm}", hwDeadline)}";
+        }
+
+        return response;
     }
 }

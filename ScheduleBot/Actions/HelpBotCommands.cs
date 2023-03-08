@@ -20,6 +20,7 @@ public record HelpBotCommands : BotCommandsWithAllActions
     protected override string ResponseStr()
     {
         var fCommand = Commands.First();
+
         string response = Commands.First().Description + ": \n\n";
         if (AllActions is not null && AllActions.Any())
             foreach (var action in AllActions)
@@ -27,14 +28,14 @@ public record HelpBotCommands : BotCommandsWithAllActions
         else
             response += DisplayCommand(fCommand);
 
-        return $"<b>{response}</b>";
+        return response;
     }
 
     string DisplayCommand(Command command)
     {
         string name = command.Name;
         if (command.IsRegEx)
-            name = $"<code>{name}</code>";
-        return $"{name} - {command.Description}";
+            name = $"<b><code>{name}</code></b>";
+        return $"<b>{name}</b> - <b>{command.Description}</b>";
     }
 }

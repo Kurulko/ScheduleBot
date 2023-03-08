@@ -24,7 +24,7 @@ public record MainBotCommands : BotCommandsWithAllActions
     ReplyKeyboardMarkup? replyKeyboardMarkup = default;
     protected override string ResponseStr()
     {
-        string response = currentCommandStr.ToLower() switch
+        string response = CurrentCommandStr.ToLower() switch
         {
             start => StartStr(ref replyKeyboardMarkup),
             stop => StopStr(),
@@ -34,17 +34,20 @@ public record MainBotCommands : BotCommandsWithAllActions
         return response; 
     }
 
-    public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, int replyToMessageId, CancellationTokenSource cts)
+    public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
     {
         string responseStr = ResponseStr();
+        if (replyToMessageId is not null)
+            return await bot.SendTextMessageAsync(chatId, $"<b>{responseStr}</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
         return await bot.SendTextMessageAsync(chatId, $"<b>{responseStr}</b>", ParseMode.Html, replyMarkup: replyKeyboardMarkup, cancellationToken: cts.Token);
+
     }
 
     string StartStr(ref ReplyKeyboardMarkup? replyKeyboardMarkup)
     {
         if(AllActions?.Any() ?? false)
         {
-            IEnumerable<KeyboardButton> popularActions = AllActions.Select(a => a.Commands.AsEnumerable()).Aggregate ((previousCommands, currentCommands) => previousCommands.Union(currentCommands)).Where(c => c.IsPopular).Select(c => new KeyboardButton(c.Name));
+            IEnumerable<KeyboardButton> popularActions = AllActions.Select(a => a.Commands.AsEnumerable()).Aggregate((previousCommands, currentCommands) => previousCommands.Union(currentCommands)).Where(c => c.IsPopular).Select(c => new KeyboardButton(c.Name));
             replyKeyboardMarkup = new(popularActions) { ResizeKeyboard = true };
         }
         return "Welcome to my app";

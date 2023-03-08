@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Bot;
 
-public record Command(string Name, string? Description, string? RegEx = null, bool IsPopular = false)
+public record Command(string Name, string? Description, string? RegEx = null, bool IsPopular = false, bool IsPeriodicallyAction = false)
 {
     public bool IsRegEx => RegEx is not null;
 }

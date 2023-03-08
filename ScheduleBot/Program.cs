@@ -1,4 +1,5 @@
 ﻿using ScheduleBot;
+using ScheduleBot.Actions;
 using ScheduleBot.Bot;
 using ScheduleBot.Database;
 using System.Threading;
@@ -11,11 +12,14 @@ using Telegram.Bot.Types.ReplyMarkups;
 using ScheduleContext db = new();
 SeedData.SeedDb(db);
 
-string tgToken = SettingsTelegram.Token;
-StartBot bot = new(tgToken);
+StartBot bot = new();
 
 CancellationTokenSource cts = new();
+
 await bot.StartReceivingAsync(cts);
+
+TimeSpan period = new TimeSpan(0, 10, 0);
+bot.NotifyNewEvents(period, cts);
 
 Console.ReadLine();
 
