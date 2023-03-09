@@ -10,5 +10,5 @@ namespace ScheduleBot.Commands.Interfaces;
 
 public interface IPeriodicallyAction
 {
-    Task DoPeriodicallyActionInTelegramAsync(ITelegramBotClient botClient, long chatId, CancellationTokenSource cts);
+    void DoPeriodicallyActionInTelegram(ITelegramBotClient botClient, long chatId, CancellationTokenSource cts);
 }

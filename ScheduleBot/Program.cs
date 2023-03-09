@@ -19,7 +19,7 @@ StartBot bot = new();
 CancellationTokenSource cts = new();
 
 await bot.StartReceivingAsync(cts);
-await bot.NotifyNewEventsAsync(cts);
+bot.NotifyNewEvents(cts);
 
 ConsoleExtensions.WriteLineWithColor("Write something to finish the app", ConsoleColor.Green);
 Console.ReadLine();
