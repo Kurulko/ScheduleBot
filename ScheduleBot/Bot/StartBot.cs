@@ -1,35 +1,37 @@
 ﻿using Azure;
-using ScheduleBot.Enums;
+using ScheduleBot.Database;
+using ScheduleBot.Database.Models;
+using ScheduleBot.Exceptions;
+using ScheduleBot.Extensions;
+using ScheduleBot.Settings;
+using ServiceStack.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ScheduleBot.Bot;
 
 public class StartBot
 {
-    TelegramBotClient bot;
-    public StartBot(string tgToken)
-		=> bot = new(tgToken);
-    
-    readonly ReceiverOptions receiverOptions = new ReceiverOptions()
-    {
-        AllowedUpdates = Array.Empty<UpdateType>()
-    };
-    
+    readonly ITelegramBotClient bot = SettingsTelegram.CurrentBot();
 
     public async Task StartReceivingAsync(CancellationTokenSource cts)
     {
+        ReceiverOptions receiverOptions = new ReceiverOptions() { AllowedUpdates = Array.Empty<UpdateType>() };
+
         bot.StartReceiving(
-            updateHandler: HandleUpdateAsync, 
-            pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(bot, exc, cts), 
-            receiverOptions, 
+            updateHandler: (ITelegramBotClient bot, Update update, CancellationToken _) => HandleUpdateAsync(update, cts),
+            pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(exc, cts),
+            receiverOptions,
             cts.Token);
 
         User me = await bot.GetMeAsync();
@@ -37,23 +39,42 @@ public class StartBot
         Console.WriteLine($"\"{fName}\" started listening ...");
     }
 
-    async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken _)
+    void AddTgChatToDbIfNotExist(TelegramChat tgChat)
     {
-        if (update.Message is not { } message || message.Text is not { } messageText)
-            return;
-        
-        if (Actions.TryParseMode(messageText, out Mode? mode))
+        using ScheduleContext db = new();
+        if (db.Chats.FirstOrDefault(c => c.Chat == tgChat.Chat) is null)
         {
-            string respond = Actions.DoAction(mode!.Value);
-            await bot.SendTextMessageAsync(update.Message.Chat.Id, respond);
-        }
-        else
-        {
-            await bot.SendTextMessageAsync(update.Message.Chat.Id, messageText);
+            db.Chats.Add(tgChat);
+            db.SaveChanges();
         }
     }
-    
-    async Task HandlePollingErrorAsync(ITelegramBotClient bot, Exception exc, CancellationTokenSource cts)
+
+    async Task HandleUpdateAsync(Update update, CancellationTokenSource cts)
+    {
+        if (update.Message is { } message && message.Text is { } messageText)
+        {
+            int replyToMessageId = message.MessageId;
+            long chatId = message.Chat.Id;
+            try
+            {
+                TelegramChat tgChat = (TelegramChat)message.Chat;
+                AddTgChatToDbIfNotExist(tgChat);
+
+                await BotActions.DoActionAsync(bot, messageText, chatId, replyToMessageId, cts);
+            }
+            catch (BotScheduleException botExc)
+            {
+                await bot.SendTextMessageAsync(chatId, $"<b>{botExc.Message}</b>", ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+            }
+            catch (Exception exc)
+            {
+                ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
+                //await StopBotAsync(cts);
+            }
+        }
+    }
+
+    async Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
     {
         Console.WriteLine($"Error: {exc.Message}");
         await StopBotAsync(cts);
@@ -65,5 +86,14 @@ public class StartBot
         string fName = me.FirstName;
         Console.WriteLine($"\"{fName}\" finished listening ...");
         cts.Cancel();
+    }
+
+    public async Task NotifyNewEventsAsync(CancellationTokenSource cts)
+    {
+        using ScheduleContext db = new();
+        IEnumerable<long> chatIds = db.Chats.Select(c => c.Chat);
+        //IEnumerable<long> chatIds = db.Chats.ToList().Select(c => c.Chat).ToList();
+        foreach (long chatId in chatIds)
+            await BotActions.DoPeriodicallyActionsAsync(bot, chatId, cts);
     }
 }

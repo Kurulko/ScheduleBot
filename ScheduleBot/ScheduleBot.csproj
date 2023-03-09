@@ -9,12 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.3" />
+    <PackageReference Include="ServiceStack.Interfaces" Version="6.6.0" />
     <PackageReference Include="Telegram.Bot" Version="18.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Database\Models\" />
-    <Folder Include="Extensions\" />
   </ItemGroup>
 
 </Project>
