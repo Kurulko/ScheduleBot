@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Commands.Main;
 
-public abstract record MainBotCommands : BotCommandsWithAllActions
+public abstract record MainBotCommands : BotCommands
 {
     public MainBotCommands(Command command) : base(command) { }
 }

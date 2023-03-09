@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScheduleBot.Database;
+namespace ScheduleBot.Database.Initialize;
 
 public static class SeedData
 {
@@ -35,7 +35,8 @@ public static class SeedData
 
         if (!db.TimeLessons.Any())
         {
-            IEnumerable<TimeLesson> timeLessons = GetAllTimeLessons();
+            IEnumerable<TimeLesson> timeLessons = GetTESTTimeLessons();
+            //IEnumerable<TimeLesson> timeLessons = GetTimeLessons();
             db.TimeLessons.AddRange(timeLessons);
             db.SaveChanges();
         }
@@ -98,7 +99,22 @@ public static class SeedData
         };
         return conferences;
     }
-    static IEnumerable<TimeLesson> GetAllTimeLessons()
+    static IEnumerable<TimeLesson> GetTESTTimeLessons()
+    {
+
+        IList<TimeLesson> timeLessons = new List<TimeLesson>();
+
+        for (int i = 0; i < 50; i++)
+        {
+            DateTime now = DateTime.Now;
+            Random random = new();
+            int during = 1;
+            timeLessons.Add(new TimeLesson() { StartTime = now.AddMinutes(i * during).AddSeconds(i*5), EndTime = now.AddMinutes((i + 1) * during).AddSeconds(i * 5), DayOfWeek = DayOfWeek.Thursday, SchWeekEnum = SchWeekEnum.Always, ConferenceId =  random.Next(10) + 1});
+        }
+
+        return timeLessons;
+    }
+    static IEnumerable<TimeLesson> GetTimeLessons()
     {
 
         IList<TimeLesson> allTimeLessons = new List<TimeLesson>();
@@ -117,9 +133,9 @@ public static class SeedData
             for (int i = 0, j = 1; i < days.Count; i++, j += 4)
             {
                 allTimeLessons.Add(new TimeLesson() { StartTime = firstLesson.StartTime, EndTime = firstLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
-                allTimeLessons.Add(new TimeLesson() {StartTime = secondLesson.StartTime, EndTime = secondLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
-                allTimeLessons.Add(new TimeLesson() {StartTime = thirdLesson.StartTime, EndTime = thirdLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
-                allTimeLessons.Add(new TimeLesson() {StartTime = fourthLesson.StartTime, EndTime = fourthLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
+                allTimeLessons.Add(new TimeLesson() { StartTime = secondLesson.StartTime, EndTime = secondLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
+                allTimeLessons.Add(new TimeLesson() { StartTime = thirdLesson.StartTime, EndTime = thirdLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
+                allTimeLessons.Add(new TimeLesson() { StartTime = fourthLesson.StartTime, EndTime = fourthLesson.EndTime, DayOfWeek = days[i], SchWeekEnum = schWeek });
             }
         }
 

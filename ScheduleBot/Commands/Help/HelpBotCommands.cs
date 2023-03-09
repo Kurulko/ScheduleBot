@@ -1,19 +1,21 @@
-﻿using ScheduleBot.Commands;
-using ScheduleBot.Bot;
+﻿using ScheduleBot.Bot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ScheduleBot.Commands.Interfaces;
 
 namespace ScheduleBot.Commands.Help;
 
-public record HelpBotCommands : BotCommandsWithAllActions
+public record HelpBotCommands : BotCommands, IAllActions
 {
     const string help = "/help";
 
     public HelpBotCommands() : base(new Command(help, "All bot's commands", IsPopular: true))
         => AllActions = new List<BotCommands>() { this };
+
+    public IEnumerable<BotCommands> AllActions { get; set; } = null!;
 
     protected override string ResponseStr()
     {

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ScheduleBot.Bot;
+using ScheduleBot.Settings;
 
 namespace ScheduleBot.Commands.Lesson;
 
@@ -38,7 +39,7 @@ public abstract record LessonBotCommands : BotCommands
         return LessonStr(st, s, t, lesson);
     }
 
-    TimeLesson2? GetLastLesson()
+    protected TimeLesson2? GetLastLesson()
     {
         DateTime last = DateTime.Now;
         DateTime first = db.TimeLessons.Min(tl => tl.StartTime);

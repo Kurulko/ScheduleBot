@@ -8,6 +8,8 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using ScheduleBot.Database.Initialize;
+using ScheduleBot.Extensions;
 
 using ScheduleContext db = new();
 SeedData.SeedDb(db);
@@ -17,10 +19,9 @@ StartBot bot = new();
 CancellationTokenSource cts = new();
 
 await bot.StartReceivingAsync(cts);
+await bot.NotifyNewEventsAsync(cts);
 
-TimeSpan period = new TimeSpan(0, 10, 0);
-bot.NotifyNewEvents(period, cts);
-
+ConsoleExtensions.WriteLineWithColor("Write something to finish the app", ConsoleColor.Green);
 Console.ReadLine();
 
 

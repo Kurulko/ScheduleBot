@@ -2,6 +2,8 @@
 using ScheduleBot.Database;
 using ScheduleBot.Database.Models;
 using ScheduleBot.Exceptions;
+using ScheduleBot.Extensions;
+using ScheduleBot.Settings;
 using ServiceStack.Messaging;
 using System;
 using System.Collections.Generic;
@@ -21,16 +23,15 @@ namespace ScheduleBot.Bot;
 public class StartBot
 {
     readonly ITelegramBotClient bot = SettingsTelegram.CurrentBot();
-    ScheduleContext db = new();
 
     public async Task StartReceivingAsync(CancellationTokenSource cts)
     {
         ReceiverOptions receiverOptions = new ReceiverOptions() { AllowedUpdates = Array.Empty<UpdateType>() };
 
         bot.StartReceiving(
-            updateHandler: (ITelegramBotClient bot, Update update, CancellationToken _) => HandleUpdateAsync(update, cts), 
-            pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(exc, cts), 
-            receiverOptions, 
+            updateHandler: (ITelegramBotClient bot, Update update, CancellationToken _) => HandleUpdateAsync(update, cts),
+            pollingErrorHandler: (ITelegramBotClient bot, Exception exc, CancellationToken _) => HandlePollingErrorAsync(exc, cts),
+            receiverOptions,
             cts.Token);
 
         User me = await bot.GetMeAsync();
@@ -40,6 +41,7 @@ public class StartBot
 
     void AddTgChatToDbIfNotExist(TelegramChat tgChat)
     {
+        using ScheduleContext db = new();
         if (db.Chats.FirstOrDefault(c => c.Chat == tgChat.Chat) is null)
         {
             db.Chats.Add(tgChat);
@@ -58,20 +60,20 @@ public class StartBot
                 TelegramChat tgChat = (TelegramChat)message.Chat;
                 AddTgChatToDbIfNotExist(tgChat);
 
-                await BotActions.DoActionAsync(bot, messageText, chatId, replyToMessageId,  cts);
+                await BotActions.DoActionAsync(bot, messageText, chatId, replyToMessageId, cts);
             }
-            catch(BotScheduleException botExc)
+            catch (BotScheduleException botExc)
             {
-                await bot.SendTextMessageAsync(chatId, $"<b>{botExc.Message}</b>", ParseMode.Html, replyToMessageId : replyToMessageId, cancellationToken: cts.Token);
+                await bot.SendTextMessageAsync(chatId, $"<b>{botExc.Message}</b>", ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
             }
-            catch(Exception exc)
+            catch (Exception exc)
             {
-                Console.WriteLine($"Error: {exc.Message}");
-                await StopBotAsync(cts);
+                ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
+                //await StopBotAsync(cts);
             }
         }
     }
-    
+
     async Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
     {
         Console.WriteLine($"Error: {exc.Message}");
@@ -86,15 +88,12 @@ public class StartBot
         cts.Cancel();
     }
 
-    public void NotifyNewEvents(TimeSpan period, CancellationTokenSource cts)
+    public async Task NotifyNewEventsAsync(CancellationTokenSource cts)
     {
-        TimerCallback tm = async (object state) =>
-        {
-            foreach (var chat in db.Chats.Select(c => c.Chat))
-            {
-                await BotActions.DoPeriodicallyActionsAsync(bot, chat, cts);
-            }
-        };
-        System.Threading.Timer timer = new(tm, null, 0, (int)period.TotalMilliseconds);
+        using ScheduleContext db = new();
+        IEnumerable<long> chatIds = db.Chats.Select(c => c.Chat);
+        //IEnumerable<long> chatIds = db.Chats.ToList().Select(c => c.Chat).ToList();
+        foreach (long chatId in chatIds)
+            await BotActions.DoPeriodicallyActionsAsync(bot, chatId, cts);
     }
 }

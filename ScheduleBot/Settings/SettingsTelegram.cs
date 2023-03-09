@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace ScheduleBot;
+namespace ScheduleBot.Settings;
 
 public class SettingsTelegram
 {
@@ -14,7 +14,7 @@ public class SettingsTelegram
     static ITelegramBotClient bot = null!;
     public static ITelegramBotClient CurrentBot()
     {
-        if(bot == null)
+        if (bot == null)
             bot = new TelegramBotClient(Token);
         return bot;
     }

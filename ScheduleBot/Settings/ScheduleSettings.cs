@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScheduleBot;
+namespace ScheduleBot.Settings;
 
 public static class ScheduleSettings
 {

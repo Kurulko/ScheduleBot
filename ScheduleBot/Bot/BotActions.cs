@@ -8,6 +8,7 @@ using ScheduleBot.Commands;
 using ScheduleBot.Commands.Help;
 using ScheduleBot.Commands.HWs;
 using ScheduleBot.Commands.HWs.Some;
+using ScheduleBot.Commands.Interfaces;
 using ScheduleBot.Commands.Lesson;
 using ScheduleBot.Commands.Lesson.Near;
 using ScheduleBot.Commands.Lesson.Some;
@@ -25,7 +26,7 @@ public class BotActions
         => new List<BotCommands> { new HelpBotCommands(), new DayAfterHWs_HWBotCommands(), new DayBeforeHWs_HWBotCommands(), new ActiveHWs_HWBotCommands(), new AllHWs_HWBotCommands(), new InactiveHWs_HWBotCommands(), new TodayHWs_HWBotCommands(), new TomorrowHWs_HWBotCommands(), new YesterdayHWs_HWBotCommands(), new SomeNextLesson_LessonBotCommands(), new SomePreviousLesson_LessonBotCommands(), new AllLessons_LessonBotCommands(), new CurrentLesson_LessonBotCommands(), new NextLesson_LessonBotCommands(), new PreviousLesson_LessonBotCommands(), new Start_MainBotCommands(), new Stop_MainBotCommands(), };
 
     static BotCommands? GetActionByName(string actionName)
-        => AllActions.FirstOrDefault(m => m.Command.Name == actionName);
+        => AllActions.FirstOrDefault(m => m.IsExistCommand(actionName));
 
     public static async Task DoActionAsync(ITelegramBotClient bot, string actionName, ChatId chatId, int replyToMessageId, CancellationTokenSource cts)
     {
@@ -34,23 +35,17 @@ public class BotActions
         if (action is null)
             throw BotScheduleException.ActionNotExist(actionName);
 
-        if (action is BotCommandsWithAllActions botWithAllActions)
+        if (action is IAllActions botWithAllActions)
             botWithAllActions.AllActions = AllActions;
 
         await action.SendResponseHtml(bot, chatId, cts, replyToMessageId);
     }
 
-    public static async Task DoPeriodicallyActionsAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts)
+    public static async Task DoPeriodicallyActionsAsync(ITelegramBotClient bot, long chatId, CancellationTokenSource cts)
     {
-        List<Command> commands = new();
-        var allActions = AllActions;
-
-        //var allCommands = allActions.Select(actions => actions.Commands.Where(c => c.IsPeriodicallyAction));
-        //foreach (var allCommand in allCommands)
-        //    commands.AddRange(allCommand);
-
-        //foreach (var command in commands)
-        //    await allActions.First(m => m.IsExistCommand(command.Name)).SendResponseHtml(bot, chatId, cts);
+        foreach (var action in AllActions)
+            if(action is IPeriodicallyAction periodicallyAction)
+                await periodicallyAction.DoPeriodicallyActionInTelegramAsync(bot, chatId, cts);
     }
 }
 

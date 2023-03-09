@@ -35,7 +35,7 @@ public class TimeLesson
     }
 }
 
-public class TimeLesson2
+public record TimeLesson2
 {
     public long Id { get; set; }
     public DayOfWeek DayOfWeek { get; set; }
