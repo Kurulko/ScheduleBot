@@ -4,8 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 #My ignore data
-Settings/
-Database/Initialize/SeedData.cs
+**/Settings
+**/Database/Initialize/SeedData.cs
 
 # User-specific files
 *.rsuser
