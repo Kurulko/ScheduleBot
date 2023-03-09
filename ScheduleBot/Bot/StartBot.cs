@@ -88,12 +88,11 @@ public class StartBot
         cts.Cancel();
     }
 
-    public async Task NotifyNewEventsAsync(CancellationTokenSource cts)
+    public void NotifyNewEvents(CancellationTokenSource cts)
     {
         using ScheduleContext db = new();
         IEnumerable<long> chatIds = db.Chats.Select(c => c.Chat);
-        //IEnumerable<long> chatIds = db.Chats.ToList().Select(c => c.Chat).ToList();
         foreach (long chatId in chatIds)
-            await BotActions.DoPeriodicallyActionsAsync(bot, chatId, cts);
+            BotActions.DoPeriodicallyActions(bot, chatId, cts);
     }
 }

@@ -14,6 +14,7 @@ using ScheduleBot.Commands.Lesson.Near;
 using ScheduleBot.Commands.Lesson.Some;
 using ScheduleBot.Commands.Main;
 using ScheduleBot.Exceptions;
+using ScheduleBot.Timer;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -23,7 +24,7 @@ namespace ScheduleBot.Bot;
 public class BotActions
 {
     static IEnumerable<BotCommands> AllActions
-        => new List<BotCommands> { new HelpBotCommands(), new DayAfterHWs_HWBotCommands(), new DayBeforeHWs_HWBotCommands(), new ActiveHWs_HWBotCommands(), new AllHWs_HWBotCommands(), new InactiveHWs_HWBotCommands(), new TodayHWs_HWBotCommands(), new TomorrowHWs_HWBotCommands(), new YesterdayHWs_HWBotCommands(), new SomeNextLesson_LessonBotCommands(), new SomePreviousLesson_LessonBotCommands(), new AllLessons_LessonBotCommands(), new CurrentLesson_LessonBotCommands(), new NextLesson_LessonBotCommands(), new PreviousLesson_LessonBotCommands(), new Start_MainBotCommands(), new Stop_MainBotCommands(), };
+        => new List<BotCommands> { new PreviousLesson_LessonBotCommands(), new CurrentLesson_LessonBotCommands(), new NextLesson_LessonBotCommands(), new AllLessons_LessonBotCommands(), new SomePreviousLesson_LessonBotCommands(), new SomeNextLesson_LessonBotCommands(), new TodayHWs_HWBotCommands(), new ActiveHWs_HWBotCommands(), new InactiveHWs_HWBotCommands(), new AllHWs_HWBotCommands(), new YesterdayHWs_HWBotCommands(), new TomorrowHWs_HWBotCommands(), new DayBeforeHWs_HWBotCommands(), new DayAfterHWs_HWBotCommands(), new   Start_MainBotCommands(), new Stop_MainBotCommands(), new HelpBotCommands() };
 
     static BotCommands? GetActionByName(string actionName)
         => AllActions.FirstOrDefault(m => m.IsExistCommand(actionName));
@@ -41,11 +42,26 @@ public class BotActions
         await action.SendResponseHtml(bot, chatId, cts, replyToMessageId);
     }
 
-    public static async Task DoPeriodicallyActionsAsync(ITelegramBotClient bot, long chatId, CancellationTokenSource cts)
+    public static void DoPeriodicallyActions(ITelegramBotClient bot, long chatId, CancellationTokenSource cts)
     {
+        TimeSpan period = new(0, 0, 10);
+
         foreach (var action in AllActions)
-            if(action is IPeriodicallyAction periodicallyAction)
-                await periodicallyAction.DoPeriodicallyActionInTelegramAsync(bot, chatId, cts);
+        {
+            if (action is IPeriodicallyAction periodicallyAction)
+            {
+                TimerAsync timerAsync = new(() => periodicallyAction.DoPeriodicallyActionInTelegram(bot, chatId, cts), period, cts);
+                try
+                {
+                    timerAsync.Start();
+                }
+                catch
+                {
+                    timerAsync.Stop();
+                    throw;
+                }
+            }
+        }
     }
 }
 

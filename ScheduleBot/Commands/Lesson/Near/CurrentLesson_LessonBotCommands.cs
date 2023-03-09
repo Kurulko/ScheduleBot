@@ -2,6 +2,7 @@
 using ScheduleBot.Commands.Interfaces;
 using ScheduleBot.Database.Models;
 using ScheduleBot.Exceptions;
+using ScheduleBot.Timer;
 using ServiceStack;
 using ServiceStack.Messaging;
 using ServiceStack.Model;
@@ -22,51 +23,50 @@ public record CurrentLesson_LessonBotCommands : NearLesson_LessonBotCommands, IP
 {
     public CurrentLesson_LessonBotCommands() : base(new Command("/current_lesson", "Current lesson", IsPopular: true)) { }
 
-    public async Task DoPeriodicallyActionInTelegramAsync(ITelegramBotClient bot, long chatId, CancellationTokenSource cts)
+
+    public void DoPeriodicallyActionInTelegram(ITelegramBotClient bot, long chatId, CancellationTokenSource cts)
     {
+        (this.bot, this.chatId, this.cts) = (bot, chatId, cts);
+        SendCurrentLessonAndDeleteWhenFinish();
+    }
 
-        await Task.Run(SendCurrentLessonAndDeleteWhenFinish);
+    ITelegramBotClient bot = null!; long chatId; CancellationTokenSource cts = null!; bool isSend = false; int? messageId = null; TimeLesson2? previousTimeLesson = null;
 
-        async void SendCurrentLessonAndDeleteWhenFinish()
+    async void SendCurrentLessonAndDeleteWhenFinish()
+    {
+        bool isNowLesson = IsNowLesson(out TimeLesson2? currentTimeLesson);
+        bool isCanSend = true;
+
+        if (currentTimeLesson != this.previousTimeLesson)
         {
-            bool isSend = false;
-            int? messageId = null;
-            TimeLesson2? previousTimeLesson = null;
-
-            while (true)
+            if (this.isSend)
             {
-                bool isNowLesson = IsNowLesson(out TimeLesson2? currentTimeLesson);
+                TimeOnly endTime = this.previousTimeLesson!.EndTime;
+                TimeOnly now = TimeOnly.FromDateTime(DateTime.Now);
 
-                if (currentTimeLesson != previousTimeLesson)
+                if (now.Minute == endTime.Minute && now.Hour == endTime.Hour)
                 {
-                    if (isSend)
+                    if (this.messageId is not null)
                     {
-                        TimeOnly endTime = previousTimeLesson!.EndTime;
-                        TimeOnly now = TimeOnly.FromDateTime(DateTime.Now);
-
-                        if (now.Minute == endTime.Minute && now.Hour == endTime.Hour)
-                        {
-                            if (messageId is not null)
-                            {
-                                await bot.DeleteMessageAsync(chatId, messageId.Value, cancellationToken: cts.Token);
-                                isSend = false;
-                            }
-                        }
-                        if (!isSend)
-                            continue;
-                    }
-
-                    if (isNowLesson && !isSend)
-                    {
-                        string responseStr = GetLessonStrByTimeLesson(currentTimeLesson!);
-                        messageId = (await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, cancellationToken: cts.Token)).MessageId;
-                        isSend = true;
-                        previousTimeLesson = currentTimeLesson;
+                        await this.bot.DeleteMessageAsync(this.chatId, this.messageId.Value, cancellationToken: cts.Token);
+                        isSend = false;
                     }
                 }
+                if (!this.isSend)
+                    isCanSend = false;
+            }
+
+            if (isNowLesson && !this.isSend && isCanSend)
+            {
+                string responseStr = GetLessonStrByTimeLesson(currentTimeLesson!);
+                this.messageId = (await this.bot.SendTextMessageAsync(this.chatId, responseStr, ParseMode.Html, cancellationToken: cts.Token)).MessageId;
+                this.isSend = true;
+                this.previousTimeLesson = currentTimeLesson;
             }
         }
     }
+
+
 
     protected override string ResponseLessonStr()
     {
