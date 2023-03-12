@@ -11,13 +11,17 @@ namespace ScheduleBot.Database.Models;
 public class TimeLesson
 {
     public long Id { get; set; }
+    public DateTime FirstPartStartTime { get; set; }
+    public DateTime FirstPartEndTime { get; set; }
+    public DateTime SecondPartStartTime { get; set; }
+    public DateTime SecondPartEndTime { get; set; }
+    public SchWeek SchWeek { get; set; }
     public DayOfWeek DayOfWeek { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public SchWeekEnum SchWeekEnum { get; set; }
 
     public long ConferenceId { get; set; }
     public Conference? Conference { get; set; }
+    public long TokenId { get; set; }
+    public Token? Token { get; set; }
 
     public static explicit operator TimeLesson2(TimeLesson timeLesson1)
     {
@@ -25,11 +29,15 @@ public class TimeLesson
 
         timeLesson2.Id = timeLesson1.Id;
         timeLesson2.DayOfWeek = timeLesson1.DayOfWeek;
-        timeLesson2.SchWeekEnum = timeLesson1.SchWeekEnum;
-        timeLesson2.StartTime = TimeOnly.FromDateTime(timeLesson1.StartTime);
-        timeLesson2.EndTime = TimeOnly.FromDateTime(timeLesson1.EndTime);
+        timeLesson2.SchWeek = timeLesson1.SchWeek;
+        timeLesson2.FirstPartStartTime = TimeOnly.FromDateTime(timeLesson1.FirstPartStartTime);
+        timeLesson2.FirstPartEndTime = TimeOnly.FromDateTime(timeLesson1.FirstPartEndTime);
+        timeLesson2.SecondPartStartTime = TimeOnly.FromDateTime(timeLesson1.SecondPartStartTime);
+        timeLesson2.SecondPartEndTime = TimeOnly.FromDateTime(timeLesson1.SecondPartEndTime);
         timeLesson2.ConferenceId = timeLesson1.ConferenceId;
         timeLesson2.Conference = timeLesson1.Conference;
+        timeLesson2.TokenId = timeLesson1.TokenId;
+        timeLesson2.Token = timeLesson1.Token;
 
         return timeLesson2;
     }
@@ -38,15 +46,19 @@ public class TimeLesson
 public record TimeLesson2
 {
     public long Id { get; set; }
+    public TimeOnly FirstPartStartTime { get; set; }
+    public TimeOnly FirstPartEndTime { get; set; }
+    public TimeOnly SecondPartStartTime { get; set; }
+    public TimeOnly SecondPartEndTime { get; set; }
+    public SchWeek SchWeek { get; set; }
     public DayOfWeek DayOfWeek { get; set; }
-    public TimeOnly StartTime { get; set; }
-    public TimeOnly EndTime { get; set; }
-    public SchWeekEnum SchWeekEnum { get; set; }
 
     public long ConferenceId { get; set; }
     public Conference? Conference { get; set; }
+    public long TokenId { get; set; }
+    public Token? Token { get; set; }
 }
-public enum SchWeekEnum
+public enum SchWeek
 {
     Always,
     Numerator,

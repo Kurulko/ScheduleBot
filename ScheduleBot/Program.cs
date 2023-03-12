@@ -12,14 +12,13 @@ using ScheduleBot.Database.Initialize;
 using ScheduleBot.Extensions;
 
 using ScheduleContext db = new();
-SeedData.SeedDb(db);
+SeedDb.SeedExampleData(db);
 
 StartBot bot = new();
 
 CancellationTokenSource cts = new();
 
 await bot.StartReceivingAsync(cts);
-bot.NotifyNewEvents(cts);
 
 ConsoleExtensions.WriteLineWithColor("Write something to finish the app", ConsoleColor.Green);
 Console.ReadLine();

@@ -3,6 +3,7 @@ using ScheduleBot.Database;
 using ScheduleBot.Database.Models;
 using ScheduleBot.Exceptions;
 using ScheduleBot.Extensions;
+using ScheduleBot.Services.Common;
 using ScheduleBot.Settings;
 using ServiceStack.Messaging;
 using System;
@@ -22,7 +23,7 @@ namespace ScheduleBot.Bot;
 
 public class StartBot
 {
-    readonly ITelegramBotClient bot = SettingsTelegram.CurrentBot();
+    readonly ITelegramBotClient bot = TelegramSettings.CurrentBot();
 
     public async Task StartReceivingAsync(CancellationTokenSource cts)
     {
@@ -41,12 +42,9 @@ public class StartBot
 
     void AddTgChatToDbIfNotExist(TelegramChat tgChat)
     {
-        using ScheduleContext db = new();
-        if (db.Chats.FirstOrDefault(c => c.Chat == tgChat.Chat) is null)
-        {
-            db.Chats.Add(tgChat);
-            db.SaveChanges();
-        }
+        ChatService chatService = new();
+        if (chatService.GetChatByChat(tgChat.Chat) is null)
+            chatService.AddChat(tgChat);
     }
 
     async Task HandleUpdateAsync(Update update, CancellationTokenSource cts)
@@ -76,7 +74,7 @@ public class StartBot
 
     async Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
     {
-        Console.WriteLine($"Error: {exc.Message}");
+        ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
         await StopBotAsync(cts);
     }
 
@@ -86,13 +84,5 @@ public class StartBot
         string fName = me.FirstName;
         Console.WriteLine($"\"{fName}\" finished listening ...");
         cts.Cancel();
-    }
-
-    public void NotifyNewEvents(CancellationTokenSource cts)
-    {
-        using ScheduleContext db = new();
-        IEnumerable<long> chatIds = db.Chats.Select(c => c.Chat);
-        foreach (long chatId in chatIds)
-            BotActions.DoPeriodicallyActions(bot, chatId, cts);
     }
 }

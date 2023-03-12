@@ -21,6 +21,9 @@ public class TimerAsync
     {
         while (true)
         {
+            if (cts.IsCancellationRequested)
+                break;
+
             action();
 
             int TotalMilliseconds = Convert.ToInt32(period.TotalMilliseconds);

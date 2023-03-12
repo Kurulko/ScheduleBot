@@ -54,4 +54,6 @@ public class TelegramChat
         return tgChat;
     }
 
+    public long? TokenId { get; set; }
+    public Token? Token { get; set; }
 }

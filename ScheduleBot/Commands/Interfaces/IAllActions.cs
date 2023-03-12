@@ -9,5 +9,5 @@ namespace ScheduleBot.Commands.Interfaces;
 
 public interface IAllActions
 {
-    IEnumerable<BotCommands> AllActions { get; set; }
+    IEnumerable<BotCommand> AllActions { get; set; }
 }

@@ -18,4 +18,6 @@ public class Conference
     public Subject? Subject { get; set; }
     public long? TeacherId { get; set; }
     public Teacher? Teacher { get; set; }
+    public long TokenId { get; set; }
+    public Token? Token { get; set; }
 }

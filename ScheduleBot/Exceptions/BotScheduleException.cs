@@ -16,6 +16,10 @@ public class BotScheduleException : Exception
         => new("The lecture ins't found");
     public static BotScheduleException IncorrectExpression()
         => new("Incorrect expression");
+    public static BotScheduleException IncorrectToken()
+        => new("Incorrect token");
+    public static BotScheduleException IncorrectValuesFromExcel()
+    => new("Incorrect values in excel");
     public static BotScheduleException ActionNotExist(string actionName)
         => new($"Such an action \"{actionName}\" doesn't exist");
 }
