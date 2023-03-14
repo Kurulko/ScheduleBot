@@ -22,7 +22,7 @@ public record Start_MainBotCommand : MainBotCommand, IAllActions
     protected override string ResponseStr()
     {
         SetReplyKeyboardMarkup();
-        return "Welcome to my app";
+        return "<b>Welcome to my app.\nRead about <a href=\"https://github.com/Kurulko/ScheduleBot/blob/master/README.md\">this bot</a></b>";
     }
 
     void SetReplyKeyboardMarkup()
@@ -32,11 +32,5 @@ public record Start_MainBotCommand : MainBotCommand, IAllActions
             var popularActions = AllActions.Where(a => a.Command.IsPopular).Select(a => new KeyboardButton(a.Command.Name));
             replyKeyboardMarkup = new(popularActions) { ResizeKeyboard = true };
         }
-    }
-
-    public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
-    {
-        string responseStr = $"<b>{ResponseStr()}</b>";
-        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token, replyMarkup: replyKeyboardMarkup);
     }
 }

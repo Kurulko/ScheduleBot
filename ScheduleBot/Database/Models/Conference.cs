@@ -8,9 +8,8 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Database.Models;
 
-public class Conference
+public class Conference : DbModelWithToken
 {
-    public long Id { get; set; }
     public string? Link { get; set; }
 
     public IEnumerable<TimeLesson>? TimeLessons { get; set; }
@@ -18,6 +17,4 @@ public class Conference
     public Subject? Subject { get; set; }
     public long? TeacherId { get; set; }
     public Teacher? Teacher { get; set; }
-    public long TokenId { get; set; }
-    public Token? Token { get; set; }
 }

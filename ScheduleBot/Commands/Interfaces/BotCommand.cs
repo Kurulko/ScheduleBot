@@ -8,6 +8,8 @@ using Telegram.Bot.Types;
 using Telegram.Bot;
 using ScheduleBot.Settings;
 using ScheduleBot.Services.ByToken;
+using ScheduleBot.Extensions;
+using Telegram.Bot.Types.Enums;
 
 namespace ScheduleBot.Commands.Interfaces;
 
@@ -19,7 +21,7 @@ public abstract record BotCommand(Command Command)
 
     protected internal BreakServiceByToken breakService = null!;
     protected internal ConferenceServiceByToken conferenceService = null!;
-    protected internal HWServiceByToken hWService = null!;
+    protected internal EventServiceByToken eventService = null!;
     protected internal SubjectServiceByToken subjectService = null!;
     protected internal TeacherServiceByToken teacherService = null!;
     protected internal TimeLessonServiceByToken timeLessonService = null!;
@@ -33,4 +35,22 @@ public abstract record BotCommand(Command Command)
             return $"<b>{name}</b> - <b>{Command.Description}</b>";
         return $"<b>{name}</b>";
     }
+
+    protected async Task<Message> SendTextMessagesIfResponseMoreMaxLengthAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, string responseStr, int? replyToMessageId = null)
+    {
+        Message message = default!;
+
+        int maxLength = TelegramSettings.MaxLengthOfMessage;
+        var responsesStr = responseStr.DevideStrIfMoreMaxLength(maxLength).ToList();
+        for (int i = 0; i < responsesStr.Count(); i++)
+        {
+            message = await bot.SendTextMessageAsync(chatId, $"<b>{responsesStr[i]}</b>", ParseMode.Html, replyToMessageId: i == 0 ? replyToMessageId : message.MessageId, cancellationToken: cts.Token);
+        }
+
+
+        return message;
+    }
+
+    async Task<Message> SendTextMessageAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, string responseStr, int? replyToMessageId = null)
+        => await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
 }

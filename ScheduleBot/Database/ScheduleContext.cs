@@ -16,7 +16,7 @@ public class ScheduleContext : DbContext
     public DbSet<Conference> Conferences { get; set; } = null!;
     public DbSet<TimeLesson> TimeLessons { get; set; } = null!;
     public DbSet<Break> Breaks { get; set; } = null!;
-    public DbSet<HW> HWs { get; set; } = null!;
+    public DbSet<Event> Events { get; set; } = null!;
     public DbSet<TelegramChat> Chats { get; set; } = null!;
     public DbSet<Token> Tokens { get; set; } = null!;
 
@@ -25,7 +25,7 @@ public class ScheduleContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        builder.Entity<Token>().HasMany(t => t.HWs).WithOne(hw => hw.Token).OnDelete(DeleteBehavior.NoAction);
+        builder.Entity<Token>().HasMany(t => t.Events).WithOne(hw => hw.Token).OnDelete(DeleteBehavior.NoAction);
         builder.Entity<Token>().HasMany(t => t.Teachers).WithOne(hw => hw.Token).OnDelete(DeleteBehavior.NoAction);
         builder.Entity<Token>().HasMany(t => t.Subjects).WithOne(hw => hw.Token).OnDelete(DeleteBehavior.NoAction);
         builder.Entity<Token>().HasMany(t => t.Conferences).WithOne(hw => hw.Token).OnDelete(DeleteBehavior.NoAction);
@@ -38,7 +38,7 @@ public class ScheduleContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        string connectionStr = "Server=(localdb)\\mssqllocaldb; Database=Schedule_v_12; Trusted_Connection=True; MultipleActiveResultSets=true";
+        string connectionStr = "Server=(localdb)\\mssqllocaldb; Database=Schedule_v5; Trusted_Connection=True; MultipleActiveResultSets=true";
         optionsBuilder.UseSqlServer(connectionStr);
     }
 }

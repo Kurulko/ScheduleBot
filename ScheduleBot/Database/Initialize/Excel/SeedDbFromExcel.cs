@@ -1,6 +1,9 @@
 ﻿using Newtonsoft.Json;
 using ScheduleBot.Database.Models;
 using ScheduleBot.Exceptions;
+using ScheduleBot.Services;
+using ScheduleBot.Services.ByToken;
+using ScheduleBot.Services.Common;
 using ScheduleBot.Settings;
 using System;
 using System.Collections.Generic;
@@ -9,42 +12,53 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
 
 namespace ScheduleBot.Database.Initialize.Excel;
 
-public static class SeedDbFromExcel
+public class SeedDbFromExcel
 {
+    static void IfThrownException(Token token)
+    {
+        ModelsService.DeleteAllModelsByTokenId(token.Id);
+        TokenService tokenService = new();
+        tokenService.RemoveModel(token);
+    }
+
     public static async Task SeedDbAsync(Token token)
     {
         try
         {
             HttpClient httpClient = new HttpClient();
-            string url = $"https://sheets.googleapis.com/v4/spreadsheets/{token.Name}/values/" + "{0}!A2:H100?key=" + ExcelSettings.APIKey;
+            string url = $"https://sheets.googleapis.com/v4/spreadsheets/{token.Name}/values/" + "{0}!A2:" + $"H{ExcelSettings.CountOfRows}?key={ExcelSettings.APIKey}";
 
             ExcelData? excelLessons = await httpClient.GetFromJsonAsync<ExcelData>(string.Format(url, "Lessons"));
             ParseLessonsData(excelLessons!, token.Id);
 
-            ExcelData? excelHWs = await httpClient.GetFromJsonAsync<ExcelData>(string.Format(url, "Homeworks"));
-            ParseHWsData(excelHWs!, token.Id);
+            ExcelData? excelEvents = await httpClient.GetFromJsonAsync<ExcelData>(string.Format(url, "Events"));
+            ParseEventsData(excelEvents!, token.Id);
 
             AddBreaksToDbByToken(token.Id);
         }
         catch(BotScheduleException)
         {
+            IfThrownException(token);
             throw;
         }
         catch(Exception)
         {
+            IfThrownException(token);
             throw BotScheduleException.IncorrectToken();
         }
     }
     static void AddBreaksToDbByToken(long tokenId)
     {
-        using ScheduleContext db = new();
-
+        BreakServiceByToken breakServiceByToken = new(tokenId);
+        TimeLessonServiceByToken timeLessonServiceByToken = new(tokenId);
+        
         IList<Break> breaks = new List<Break>();
 
-        IList<TimeLesson> timeLessons = db.TimeLessons.Where(tl => tl.TokenId == tokenId).OrderBy(tl => tl.DayOfWeek).ToList();
+        IList<TimeLesson> timeLessons = timeLessonServiceByToken.GetModels().OrderBy(tl => tl.DayOfWeek).ToList();
         int countOfTimeLessons = timeLessons.Count;
         for (int i = 0; i < countOfTimeLessons - 1; i++)
         {
@@ -58,7 +72,10 @@ public static class SeedDbFromExcel
             {
                 TimeLesson nextTimeLesson = timeLessons[i + 1];
                 if (nextTimeLesson.DayOfWeek == currentTimeLesson.DayOfWeek)
+                {
                     rest.EndTime = nextTimeLesson.FirstPartStartTime;
+                    rest.DayOfWeek = nextTimeLesson.DayOfWeek;
+                }
                 else
                     continue;
             }
@@ -69,38 +86,30 @@ public static class SeedDbFromExcel
         }
 
         if (breaks.Any())
-        {
-            db.Breaks.AddRange(breaks);
-            db.SaveChanges();
-        }
+            breakServiceByToken.AddModels(breaks);
     }
 
-    static void ParseHWsData(ExcelData excelHWs, long tokenId)
+    static void ParseEventsData(ExcelData excelEvents, long tokenId)
     {
-        using ScheduleContext db = new();
-
-        var excelHWsStr = excelHWs.Values;
-        if (excelHWsStr is null)
+        var excelEventsStr = excelEvents.Values;
+        if (excelEventsStr is null)
             throw BotScheduleException.IncorrectValuesFromExcel();
 
-        foreach (var excelHWStr in excelHWsStr)
+        foreach (var excelEventStr in excelEventsStr)
         {
-            Teacher teacher = ParseTeacher(excelHWStr[1], tokenId);
-            teacher = AddTeacherToDbIfNotExist(db, teacher, tokenId);
+            Teacher teacher = ParseTeacher(excelEventStr[1], tokenId);
+            teacher = AddTeacherToDbIfNotExist(teacher, tokenId);
 
-            Subject subject = ParseSubject(excelHWStr[2], tokenId);
-            subject = AddSubjectToDbIfNotExist(db, subject, tokenId);
+            Subject subject = ParseSubject(excelEventStr[2], tokenId);
+            subject = AddSubjectToDbIfNotExist(subject, tokenId);
 
-            string? descriptionStr = excelHWStr.Count == 5 ? excelHWStr[4] : null;
-            //string? typeOfHWStr = excelHWStr.Count == 5 ? excelHWStr[3] : null;
-            HW hw = ParseHW(excelHWStr[0], excelHWStr[3], descriptionStr, tokenId);
-            AddHWToDbIfNotExist(db, hw, teacher.Id, subject.Id, tokenId);
+            string? descriptionStr = excelEventStr.Count == 5 ? excelEventStr[4] : null;
+            Event _event = ParseEvent(excelEventStr[0], excelEventStr[3], descriptionStr, tokenId);
+            AddEventToDbIfNotExist(_event, teacher.Id, subject.Id, tokenId);
         }
     }
     static void ParseLessonsData(ExcelData excelLessons, long tokenId)
     {
-        using ScheduleContext db = new();
-
         var excelLessonsStr = excelLessons.Values;
         if (excelLessonsStr is null)
             throw BotScheduleException.IncorrectValuesFromExcel();
@@ -108,153 +117,151 @@ public static class SeedDbFromExcel
         foreach (var excelLessonStr in excelLessonsStr)
         {
             Teacher teacher = ParseTeacher(excelLessonStr[1], tokenId);
-            teacher = AddTeacherToDbIfNotExist(db, teacher, tokenId);
+            teacher = AddTeacherToDbIfNotExist(teacher, tokenId);
 
             Subject subject = ParseSubject(excelLessonStr[3], tokenId);
-            subject = AddSubjectToDbIfNotExist(db, subject, tokenId);
+            subject = AddSubjectToDbIfNotExist(subject, tokenId);
 
             Conference conference = ParseConference(excelLessonStr[2], tokenId);
-            conference = AddConferenceToDbIfNotExist(db, conference, teacher.Id, subject.Id, tokenId);
+            conference = AddConferenceToDbIfNotExist(conference, teacher.Id, subject.Id, tokenId);
 
-            TimeLesson timeLesson = ParseTimeLesson(excelLessonStr[0], excelLessonStr[7], excelLessonStr[4], excelLessonStr[5], excelLessonStr[6], tokenId);//TODO with current time
-            AddTimeLessonToDbIfNotExist(db, timeLesson, conference.Id, tokenId);
+            TimeLesson timeLesson = ParseTimeLesson(excelLessonStr[0], excelLessonStr[7], excelLessonStr[4], excelLessonStr[5], excelLessonStr[6], tokenId);
+            AddTimeLessonToDbIfNotExist(timeLesson, conference.Id, tokenId);
         }
+        //CHECK LESSONS
     }
 
 
-    static Teacher AddTeacherToDbIfNotExist(ScheduleContext db, Teacher teacher, long tokenId)
+    static Teacher AddTeacherToDbIfNotExist(Teacher teacher, long tokenId)
     {
-        Teacher? _teacher = db.Teachers.FirstOrDefault(t => t.FirstName == teacher.FirstName && t.LastName == teacher.LastName && t.FatherName == teacher.FatherName && t.TokenId == tokenId);
+        TeacherServiceByToken teacherServiceByToken = new(tokenId);
+
+        Teacher? _teacher = teacherServiceByToken.GetModels().FirstOrDefault(t => t.FirstName == teacher.FirstName && t.LastName == teacher.LastName && t.FatherName == teacher.FatherName);
         if (_teacher is null)
-        {
-            db.Teachers.Add(teacher);
-            db.SaveChanges();
-        }
+            teacherServiceByToken.AddModel(teacher);
+
         return _teacher is not null ? _teacher : teacher;
     }
-    static Subject AddSubjectToDbIfNotExist(ScheduleContext db, Subject subject, long tokenId)
+    static Subject AddSubjectToDbIfNotExist(Subject subject, long tokenId)
     {
-        Subject? _subject = db.Subjects.FirstOrDefault(s => s.Name == subject.Name && s.TokenId == tokenId);
+        SubjectServiceByToken subjectServiceByToken = new(tokenId);
+
+        Subject? _subject = subjectServiceByToken.GetModels().FirstOrDefault(s => s.Name == subject.Name);
         if (_subject is null)
-        {
-            db.Subjects.Add(subject);
-            db.SaveChanges();
-        }
+            subjectServiceByToken.AddModel(subject);
+
         return _subject is not null ? _subject : subject;
     }
-    static Conference AddConferenceToDbIfNotExist(ScheduleContext db, Conference conference, long teacherId, long subjectId, long tokenId)
+    static Conference AddConferenceToDbIfNotExist(Conference conference, long teacherId, long subjectId, long tokenId)
     {
-        Conference? _conference = db.Conferences.FirstOrDefault(c => c.Link == conference.Link && c.TokenId == tokenId);
+        ConferenceServiceByToken conferenceServiceByToken = new(tokenId);
+
+        Conference? _conference = conferenceServiceByToken.GetModels().FirstOrDefault(c => c.Link == conference.Link);
         if (_conference is null)
         {
             conference.TeacherId = teacherId;
             conference.SubjectId = subjectId;
-            db.Conferences.Add(conference);
-            db.SaveChanges();
+            conferenceServiceByToken.AddModel(conference);
         }
         else
         {
             if (_conference.TeacherId != teacherId)
             {
                 _conference.TeacherId = teacherId;
-                db.Conferences.Update(_conference);
-                db.SaveChanges();
+                conferenceServiceByToken.UpdateModel(_conference);
             }
             if (_conference.SubjectId != subjectId)
             {
                 _conference.SubjectId = subjectId;
-                db.Conferences.Update(_conference);
-                db.SaveChanges();
+                conferenceServiceByToken.UpdateModel(_conference);
             }
         }
         return _conference is not null ? _conference : conference;
     }
-    static HW AddHWToDbIfNotExist(ScheduleContext db, HW hw, long teacherId, long subjectId, long tokenId)
+    static Event AddEventToDbIfNotExist(Event _event, long teacherId, long subjectId, long tokenId)
     {
-        HW? _hw = db.HWs.FirstOrDefault(h => h.Deadline == hw.Deadline && h.WasGivenDate == hw.WasGivenDate  && h.Description == hw.Description && h.TypeOfHW == hw.TypeOfHW && h.TokenId == tokenId);
-        if (_hw is null)
+        EventServiceByToken eventServiceByToken = new(tokenId);
+
+        Event? __event = eventServiceByToken.GetModels().FirstOrDefault(h => h.Deadline == _event.Deadline && h.WasGivenDate == _event.WasGivenDate  && h.Description == _event.Description && h.TypeOfEvent == _event.TypeOfEvent);
+        if (__event is null)
         {
-            hw.TeacherId = teacherId;
-            hw.SubjectId = subjectId;
-            db.HWs.Add(hw);
-            db.SaveChanges();
+            _event.TeacherId = teacherId;
+            _event.SubjectId = subjectId;
+            eventServiceByToken.AddModel(_event);
         }
         else
         {
-            if (_hw.TeacherId != teacherId)
+            if (__event.TeacherId != teacherId)
             {
-                _hw.TeacherId = teacherId;
-                db.HWs.Update(_hw);
-                db.SaveChanges();
+                __event.TeacherId = teacherId;
+                eventServiceByToken.UpdateModel(__event);
             }
-            if (_hw.SubjectId != subjectId)
+            if (__event.SubjectId != subjectId)
             {
-                _hw.SubjectId = subjectId;
-                db.HWs.Update(_hw);
-                db.SaveChanges();
+                __event.SubjectId = subjectId;
+                eventServiceByToken.UpdateModel(__event);
             }
         }
-        return _hw is not null ? _hw : hw;
+        return __event is not null ? __event : _event;
     }
-    static TimeLesson AddTimeLessonToDbIfNotExist(ScheduleContext db, TimeLesson timeLesson, long conferenceId, long tokenId)
+    static TimeLesson AddTimeLessonToDbIfNotExist(TimeLesson timeLesson, long conferenceId, long tokenId)
     {
-        TimeLesson? _timeLesson = db.TimeLessons.FirstOrDefault(tl => tl.FirstPartStartTime == timeLesson.FirstPartStartTime && tl.FirstPartEndTime == timeLesson.FirstPartEndTime && tl.SecondPartStartTime == timeLesson.SecondPartStartTime && tl.SecondPartEndTime == timeLesson.SecondPartEndTime && tl.DayOfWeek == timeLesson.DayOfWeek && tl.SchWeek == timeLesson.SchWeek && tl.TokenId == tokenId);
+        TimeLessonServiceByToken timeLessonServiceByToken = new(tokenId);
+
+        TimeLesson? _timeLesson = timeLessonServiceByToken.GetModels().FirstOrDefault(tl => tl.FirstPartStartTime == timeLesson.FirstPartStartTime && tl.FirstPartEndTime == timeLesson.FirstPartEndTime && tl.SecondPartStartTime == timeLesson.SecondPartStartTime && tl.SecondPartEndTime == timeLesson.SecondPartEndTime && tl.DayOfWeek == timeLesson.DayOfWeek && tl.SchWeek == timeLesson.SchWeek);
         if (_timeLesson is null)
         {
             timeLesson.ConferenceId = conferenceId;
-            db.TimeLessons.Add(timeLesson);
-            db.SaveChanges();
+            timeLessonServiceByToken.AddModel(timeLesson);
         }
         else if (_timeLesson.ConferenceId != conferenceId)
         {
             _timeLesson.ConferenceId = conferenceId;
-            db.TimeLessons.Update(_timeLesson);
-            db.SaveChanges();
+            timeLessonServiceByToken.UpdateModel(_timeLesson);
         }
         return _timeLesson is not null ? _timeLesson : timeLesson;
     }
 
 
-    static HW ParseHW(string deadlineStr, string typeOfHWStr, string? descriptionStr, long tokenId)
+    static Event ParseEvent(string deadlineStr, string typeOfEventStr, string? descriptionStr, long tokenId)
     {
-        HW hw = new();
+        Event _event = new();
 
         SetDeadline();
-        SetTypeOfHW();
+        SetTypeOfEvent();
         SetDescription();
-        hw.TokenId = tokenId;
+        _event.TokenId = tokenId;
 
-        return hw;
+        return _event;
 
         void SetDeadline()
         {
             try
             {
-                hw.Deadline = DateTime.Parse(deadlineStr); //CHECK IT
+                _event.Deadline = DateTime.Parse(deadlineStr); 
             }
             catch
             {
-                //hw.Deadline = DateTime.MaxValue;
                 throw new BotScheduleException("Inccorect deadline time");
             }
         }
 
-        void SetTypeOfHW()
+        void SetTypeOfEvent()
         {
-            foreach (TypeOfHW typeOfHW in Enum.GetValues<TypeOfHW>())
+            foreach (TypeOfEvent typeOfEvent in Enum.GetValues<TypeOfEvent>())
             {
-                if (typeOfHW.ToString().ToLower() == typeOfHWStr.ToLower())
+                if (typeOfEvent.ToString().ToLower() == typeOfEventStr.ToLower())
                 {
-                    hw.TypeOfHW = typeOfHW;
+                    _event.TypeOfEvent = typeOfEvent;
                     return;
                 }
             }
 
-            throw new BotScheduleException("Inccorect type of hw");
+            throw new BotScheduleException("Inccorect type of Event");
         }
 
         void SetDescription()
-            => hw.Description = descriptionStr;
+            => _event.Description = descriptionStr;
     }
     static TimeLesson ParseTimeLesson(string timeLessonStr, string dayOfWeekStr, string isNumeratorStr, string isDenominatorStr, string isAlwaysStr, long tokenId)
     {
@@ -333,7 +340,7 @@ public static class SeedDbFromExcel
         teacher.TokenId = tokenId;
 
         string characters = "[a-zA-Zа-яА-ЯёЁЇїІіЄєҐґ]";
-        Regex regex = new(@"(" + characters + @"{3,}\s+" + characters + "{3,}|" + characters + @"{3,})\s+(" + characters + @"{1,})\.{0,1}\s*(" + characters + "*)");
+        Regex regex = new("(" + characters + @"{3,}|" + characters + @"{3,}\s+" + characters + @"{3,})\s+(" + characters + @"{1,})\.{0,1}\s*(" + characters + "*)");
         if (regex.IsMatch(teacherStr))
         {
             var groups = regex.Match(teacherStr).Groups;
@@ -360,7 +367,7 @@ public static class SeedDbFromExcel
     {
         Subject subject = new();
 
-        subject.Name = subjectStr;
+        subject.Name = string.IsNullOrEmpty(subjectStr) ? "Unknown" : subjectStr;
         subject.TokenId = tokenId;
 
         return subject;

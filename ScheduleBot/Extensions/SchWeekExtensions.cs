@@ -12,4 +12,6 @@ public static class SchWeekExtensions
 {
     public static SchWeek GetSchWeekNow()
         => DateTimeExtensions.GetSchWeekNowByStartSemester(ScheduleSettings.StartedSemester);
+    public static SchWeek GetSchWeekByDate(DateTime dateTime)
+        => DateTimeExtensions.GetSchWeekDateByStartSemester(ScheduleSettings.StartedSemester, dateTime);
 }

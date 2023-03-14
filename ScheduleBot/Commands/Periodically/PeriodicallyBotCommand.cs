@@ -74,7 +74,7 @@ public abstract record PeriodicallyBotCommand : BotCommand, IPeriodicallyAction
         else if (mode == PeriodicallyModes.Stop)
             Stop();
 
-        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+        return await SendTextMessagesIfResponseMoreMaxLengthAsync(bot, chatId, cts, responseStr, replyToMessageId); 
     }
 
     public override string DisplayCommandStr()
@@ -85,8 +85,8 @@ public abstract record PeriodicallyBotCommand : BotCommand, IPeriodicallyAction
         string? description = Command.Description!;
         bool isRegex = Command.IsRegEx;
 
-        response += DisplayOneCommandStr($"/start_{GetStrWithoutSlash(name)}", $"Start:{description}", isRegex) + "\n";
-        response += DisplayOneCommandStr($"/stop_{GetStrWithoutSlash(name)}", $"Stop:{description}", isRegex);
+        response += DisplayOneCommandStr($"/start_{GetStrWithoutSlash(name)}", $"Start: {description}", isRegex) + "\n";
+        response += DisplayOneCommandStr($"/stop_{GetStrWithoutSlash(name)}", $"Stop: {description}", isRegex);
 
         return response;
     }

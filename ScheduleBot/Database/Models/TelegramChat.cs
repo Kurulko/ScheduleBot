@@ -10,9 +10,8 @@ using Telegram.Bot.Types;
 
 namespace ScheduleBot.Database.Models;
 
-public class TelegramChat
+public class TelegramChat : DbModelWithToken
 {
-    public long Id { get; set; }
     public long Chat { get; set; }
     public ChatType Type { get; set; }
     public string? Title { get; set; }
@@ -53,7 +52,4 @@ public class TelegramChat
 
         return tgChat;
     }
-
-    public long? TokenId { get; set; }
-    public Token? Token { get; set; }
 }

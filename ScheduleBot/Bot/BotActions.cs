@@ -27,6 +27,7 @@ using System;
 using System.Threading;
 using ScheduleBot.Commands.Tokens;
 using ScheduleBot.Services.Common;
+using ScheduleBot.Services.ByToken;
 
 namespace ScheduleBot.Bot;
 
@@ -35,7 +36,38 @@ public class BotActions
     static IEnumerable<BotCommand> ActionsWithoutToken = new List<BotCommand> { new Start_MainBotCommand(), new HelpBotCommand(), new AddTokenBotCommand() };
 
     static IEnumerable<BotCommand> AllActions
-        => new List<BotCommand> { new GettingCurrentLesson_LessonBotCommand(), new PreviousLesson_LessonBotCommand(), new CurrentLesson_LessonBotCommand(), new NextLesson_LessonBotCommand(), new AllLessons_LessonBotCommand(), new SomePreviousLesson_LessonBotCommand(), new SomeNextLesson_LessonBotCommand(), new TodayHWs_HWBotCommand(), new ActiveHWs_HWBotCommand(), new InactiveHWs_HWBotCommand(), new AllHWs_HWBotCommand(), new YesterdayHWs_HWBotCommand(), new TomorrowHWs_HWBotCommand(), new DayBeforeHWs_HWBotCommand(), new DayAfterHWs_HWBotCommand(), new Stop_MainBotCommand(), new UpdateDbBotCommand() }.Union(ActionsWithoutToken);
+        => new List<BotCommand> { 
+            new GettingCurrentLesson_LessonBotCommand(), 
+            
+            new PreviousLesson_LessonBotCommand(),
+            new CurrentLesson_LessonBotCommand(), 
+            new NextLesson_LessonBotCommand(), 
+            new AllLessons_LessonBotCommand(), 
+            new SomePreviousLesson_LessonBotCommand(), 
+            new SomeNextLesson_LessonBotCommand(), 
+            
+            new Hws_ActiveEvents_EventBotCommand(), 
+            new Hws_AllEvents_EventBotCommand(), 
+            new Hws_InactiveEvents_EventBotCommand(), 
+            new Hws_TodayEvents_EventBotCommand(), 
+            new Hws_TomorrowEvents_EventBotCommand(), 
+            new Hws_YesterdayEvents_EventBotCommand(), 
+            new HWs_DayAfterEvents_EventBotCommand(), 
+            new HWs_DayBeforeEvents_EventBotCommand(), 
+            
+            new Meetings_ActiveEvents_EventBotCommand(), 
+            new Meetings_AllEvents_EventBotCommand(), 
+            new Meetings_InactiveEvents_EventBotCommand(), 
+            new Meetings_TodayEvents_EventBotCommand(), 
+            new Meetings_TomorrowEvents_EventBotCommand(), 
+            new Meetings_YesterdayEvents_EventBotCommand(), 
+            new Meetings_DayAfterEvents_EventBotCommand(), 
+            new Meetings_DayBeforeEvents_EventBotCommand(), 
+            
+            new Stop_MainBotCommand(),
+            new UpdateDbBotCommand() 
+        
+        }.Union(ActionsWithoutToken);
 
     static BotCommand? GetActionByName(string actionName)
         => AllActions.FirstOrDefault(m => m.IsExistCommand(actionName));
@@ -72,7 +104,7 @@ public class BotActions
         long tokenId = token!.Id;
         botCommand.breakService = new BreakServiceByToken(tokenId);
         botCommand.conferenceService = new ConferenceServiceByToken(tokenId);
-        botCommand.hWService = new HWServiceByToken(tokenId);
+        botCommand.eventService = new EventServiceByToken(tokenId);
         botCommand.subjectService = new SubjectServiceByToken(tokenId);
         botCommand.teacherService = new TeacherServiceByToken(tokenId);
         botCommand.timeLessonService = new TimeLessonServiceByToken(tokenId);

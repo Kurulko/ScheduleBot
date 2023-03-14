@@ -1,4 +1,5 @@
 ﻿using ScheduleBot.Bot;
+using ScheduleBot.Database.Models;
 using ScheduleBot.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -9,10 +10,11 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Commands.HWs.Some;
 
-public abstract record SomeDayHWs_HWBotCommand : HWBotCommand
+public abstract record SomeDayEvents_EventBotCommand : EventBotCommand
 {
-    public SomeDayHWs_HWBotCommand(Command command) : base(command) { }
-    protected string SomeHWs(bool isNext)
+    public SomeDayEvents_EventBotCommand(Command command, params TypeOfEvent[] types) : base(command, types) { }
+
+    protected string SomeEvents(bool isNext)
     {
         Regex regex = new(Command.RegEx!);
         if (!regex.IsMatch(currentCommandStr))
@@ -22,7 +24,6 @@ public abstract record SomeDayHWs_HWBotCommand : HWBotCommand
         bool result = int.TryParse(numberOfLessonStr, out int numberOfLesson);
         if (!result)
             throw BotScheduleException.IncorrectExpression(); ;
-        return GetHWsStr(hw => hw.Deadline.Day == DateTime.Now.AddDays(isNext ? numberOfLesson : -1 * numberOfLesson).Day);
+        return GetEventsStr(hw => hw.Deadline.Day == DateTime.Now.AddDays(isNext ? numberOfLesson : -1 * numberOfLesson).Day);
     }
-
 }

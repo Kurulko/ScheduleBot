@@ -8,9 +8,8 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Database.Models;
 
-public class TimeLesson
+public class TimeLesson : DbModelWithToken
 {
-    public long Id { get; set; }
     public DateTime FirstPartStartTime { get; set; }
     public DateTime FirstPartEndTime { get; set; }
     public DateTime SecondPartStartTime { get; set; }
@@ -20,8 +19,6 @@ public class TimeLesson
 
     public long ConferenceId { get; set; }
     public Conference? Conference { get; set; }
-    public long TokenId { get; set; }
-    public Token? Token { get; set; }
 
     public static explicit operator TimeLesson2(TimeLesson timeLesson1)
     {
@@ -43,9 +40,8 @@ public class TimeLesson
     }
 }
 
-public record TimeLesson2
+public class TimeLesson2 : DbModelWithToken
 {
-    public long Id { get; set; }
     public TimeOnly FirstPartStartTime { get; set; }
     public TimeOnly FirstPartEndTime { get; set; }
     public TimeOnly SecondPartStartTime { get; set; }
@@ -55,8 +51,6 @@ public record TimeLesson2
 
     public long ConferenceId { get; set; }
     public Conference? Conference { get; set; }
-    public long TokenId { get; set; }
-    public Token? Token { get; set; }
 }
 public enum SchWeek
 {

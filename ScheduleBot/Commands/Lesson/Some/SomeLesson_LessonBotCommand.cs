@@ -24,7 +24,7 @@ public abstract record SomeLesson_LessonBotCommand : LessonBotCommand
         if (!result)
             throw BotScheduleException.IncorrectExpression();
 
-        numberOfLesson++;
+        //numberOfLesson++;
         return GetSomeLessonByNumberStr(isNext ? numberOfLesson : -1 * numberOfLesson);
     }
 

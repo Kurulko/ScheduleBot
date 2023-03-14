@@ -6,27 +6,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
 
 namespace ScheduleBot.Services.Common;
 
-public class TokenService
+public class TokenService : Service<Token>
 {
-    ScheduleContext db = new();
+    public override DbSet<Token> GetAllModels()
+        => db.Tokens;
 
-    public IEnumerable<Token> GetTokens()
-        => db.Tokens.ToList();
+    public Token? GetTokenByIdIncludeAllModels(long id)
+        => GetAllModels().Include(t => t.Conferences).Include(t => t.Subjects).Include(t => t.Breaks).Include(t => t.Teachers).Include(t => t.TimeLessons).Include(t => t.Events).FirstOrDefault(t => t.Id == id);
+
+    public Token? GetTokenByTokenName(string tokenName)
+        => GetModels().FirstOrDefault(t => t.Name == tokenName);
     public Token? GetTokenByChat(long chat)
-        => db.Tokens.Include(t => t.Chats).FirstOrDefault(b => b.Chats!.Select(c => c.Chat).Contains(chat));
-    public Token? GetTokensByTokenName(string tokenName)
-        => GetTokens().FirstOrDefault(t => t.Name == tokenName);
-    public void AddToken(Token token)
-    {
-        db.Tokens.Add(token);
-        db.SaveChanges();
-    }
-    public void UpdateToken(Token token)
-    {
-        db.Tokens.Update(token);
-        db.SaveChanges();
-    }
+        => GetAllModels().Include(t => t.Chats).FirstOrDefault(b => b.Chats!.Select(c => c.Chat).Contains(chat));
 }

@@ -46,7 +46,7 @@ public record CurrentLesson_LessonBotCommand : NearLesson_LessonBotCommand
     {
         TimeOnly now = TimeOnly.FromDateTime(DateTime.Now);
 
-        Break2? rest = breakService.GetBreaks().Select(b => (Break2)b).FirstOrDefault(b => now >= b.StartTime && now <= b.EndTime);
+        Break2? rest = breakService.GetModels().Select(b => (Break2)b).FirstOrDefault(b => now >= b.StartTime && now <= b.EndTime);
         if (rest is not null)
         {
             TimeLesson2? nextLesson = GetSomeLessonByNumber(+1);

@@ -44,7 +44,7 @@ public class StartBot
     {
         ChatService chatService = new();
         if (chatService.GetChatByChat(tgChat.Chat) is null)
-            chatService.AddChat(tgChat);
+            chatService.AddModel(tgChat);
     }
 
     async Task HandleUpdateAsync(Update update, CancellationTokenSource cts)
@@ -62,7 +62,13 @@ public class StartBot
             }
             catch (BotScheduleException botExc)
             {
-                await bot.SendTextMessageAsync(chatId, $"<b>{botExc.Message}</b>", ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+                string messageExc = botExc.Message;
+                int maxLength = TelegramSettings.MaxLengthOfMessage;
+                var responsesStr = messageExc.DevideStrIfMoreMaxLength(maxLength).ToList();
+                for (int i = 0; i < responsesStr.Count(); i++)
+                {
+                    message = await bot.SendTextMessageAsync(chatId, $"<b>{responsesStr[i]}</b>", ParseMode.Html, replyToMessageId: i == 0 ? replyToMessageId : message.MessageId, cancellationToken: cts.Token);
+                }
             }
             catch (Exception exc)
             {
@@ -72,10 +78,11 @@ public class StartBot
         }
     }
 
-    async Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
+    Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
     {
         ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
-        await StopBotAsync(cts);
+        return Task.CompletedTask;
+        //await StopBotAsync(cts);
     }
 
     async Task StopBotAsync(CancellationTokenSource cts)

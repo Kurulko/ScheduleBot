@@ -1,10 +1,13 @@
 ﻿using ScheduleBot.Bot;
+using ScheduleBot.Extensions;
 using ScheduleBot.Settings;
+using ServiceStack.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -40,7 +43,6 @@ public abstract record OnceBotCommand : BotCommand
     public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
     {
         string responseStr = ResponseStr();
-        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+        return await SendTextMessagesIfResponseMoreMaxLengthAsync(bot, chatId, cts, responseStr, replyToMessageId);
     }
-
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ScheduleBot.Database.Models;
+using ScheduleBot.Services.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,70 +9,73 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Database.Initialize;
 
-public static class SeedDb
+public static class SeedDbExample
 {
-    public static void SeedExampleData(ScheduleContext db)
+
+    public static void SeedExampleData()
     {
-        if (!db.Tokens.Any())
+        TokenService tokenService = new();
+        if (!tokenService.AnyModels())
         {
-            string token = "1HtkpLp3poJ8I-mZV6GbPM2_LNAfgBwfXnMOrngzhceQ";
-            db.Tokens.Add(new Token() { Name = token });
-            db.SaveChanges();
+            string token = "kurulkofather";
+            tokenService.AddModel(new Token() { Name = token });
         }
 
-        if (!db.Breaks.Any())
+        BreakService breakService = new();
+        if (!breakService.AnyModels())
         {
             IEnumerable<Break> breaks = GetBreaks();
-            db.Breaks.AddRange(breaks);
-            db.SaveChanges();
+            breakService.AddModels(breaks);
         }
 
-        if (!db.Teachers.Any())
+        TeacherService teacherService = new();
+        if (!teacherService.AnyModels())
         {
             IEnumerable<Teacher> teachers = GetTeachers();
-            db.Teachers.AddRange(teachers);
-            db.SaveChanges();
+            teacherService.AddModels(teachers);
         }
 
-        if (!db.Subjects.Any())
+        SubjectService subjectService = new();
+        if (!subjectService.AnyModels())
         {
             IEnumerable<Subject> subjects = GetSubjects();
-            db.Subjects.AddRange(subjects);
-            db.SaveChanges();
+            subjectService.AddModels(subjects);
         }
 
-        if (!db.Conferences.Any())
+        ConferenceService conferenceService = new();
+        if (!conferenceService.AnyModels())
         {
             IEnumerable<Conference> conferences = GetConferences();
-            db.Conferences.AddRange(conferences);
-            db.SaveChanges();
+            conferenceService.AddModels(conferences);
         }
 
-        if (!db.TimeLessons.Any())
+        TimeLessonService timeLessonService = new();
+        if (!timeLessonService.AnyModels())
         {
             //IEnumerable<TimeLesson> timeLessons = GetTimeLessons();
             IEnumerable<TimeLesson> timeLessons = GetTESTTimeLessons();
-            db.TimeLessons.AddRange(timeLessons);
-            db.SaveChanges();
+            timeLessonService.AddModels(timeLessons);
         }
 
-
-        if (!db.HWs.Any())
+        EventService eventService = new();
+        if (!eventService.AnyModels())
         {
-            IEnumerable<HW> hws = GetHWs();
-            db.HWs.AddRange(hws);
-            db.SaveChanges();
+            IEnumerable<Event> events = GetEvents();
+            eventService.AddModels(events);
         }
     }
 
     static IEnumerable<Break> GetBreaks()
     {
-        IEnumerable<Break> breaks = new List<Break>()
+        IList<Break> breaks = new List<Break>();
+
+        foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
         {
-            new Break(){ StartTime = DateTime.MinValue.AddHours(10).AddMinutes(15), EndTime = DateTime.MinValue.AddHours(10).AddMinutes(35), TokenId = 1},
-            new Break(){ StartTime = DateTime.MinValue.AddHours(12).AddMinutes(10), EndTime = DateTime.MinValue.AddHours(12).AddMinutes(20), TokenId = 1},
-            new Break(){ StartTime = DateTime.MinValue.AddHours(13).AddMinutes(55), EndTime = DateTime.MinValue.AddHours(14).AddMinutes(05), TokenId = 1},
-         };
+            breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(10).AddMinutes(15), EndTime = DateTime.MinValue.AddHours(10).AddMinutes(35), TokenId = 1, DayOfWeek = day });
+            breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(12).AddMinutes(10), EndTime = DateTime.MinValue.AddHours(12).AddMinutes(20), TokenId = 1, DayOfWeek = day });
+            breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(13).AddMinutes(55), EndTime = DateTime.MinValue.AddHours(14).AddMinutes(05), TokenId = 1, DayOfWeek = day });
+        }
+
         return breaks;
     }
     static IEnumerable<Teacher> GetTeachers()
@@ -130,7 +134,7 @@ public static class SeedDb
         for (int i = 0; i < 50; i++)
         {
             DateTime now = DateTime.Now;
-            DateTime firstPartStartTime = now.AddMinutes(i + 5*i);
+            DateTime firstPartStartTime = now.AddMinutes(i + 5 * i);
             DateTime secondPartEndTime = firstPartStartTime.AddMinutes(4);
             timeLessons.Add(new() { FirstPartStartTime = firstPartStartTime, FirstPartEndTime = firstPartStartTime.AddMinutes(1), SecondPartStartTime = firstPartStartTime.AddMinutes(3), SecondPartEndTime = secondPartEndTime, DayOfWeek = now.DayOfWeek, SchWeek = SchWeek.Always, ConferenceId = new Random().Next(10) + 1, TokenId = 1 });
         }
@@ -142,10 +146,10 @@ public static class SeedDb
 
         IList<TimeLesson> allTimeLessons = new List<TimeLesson>();
 
-        TimeLesson firstLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(8).AddMinutes(40), FirstPartEndTime = DateTime.MinValue.AddHours(9).AddMinutes(25), SecondPartStartTime = DateTime.MinValue.AddHours(9).AddMinutes(30),SecondPartEndTime = DateTime.MinValue.AddHours(10).AddMinutes(15) };
-        TimeLesson secondLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(10).AddMinutes(35), FirstPartEndTime = DateTime.MinValue.AddHours(11).AddMinutes(20), SecondPartStartTime = DateTime.MinValue.AddHours(11).AddMinutes(25),SecondPartEndTime = DateTime.MinValue.AddHours(12).AddMinutes(10), };
-        TimeLesson thirdLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(12).AddMinutes(20), FirstPartEndTime = DateTime.MinValue.AddHours(13).AddMinutes(05), SecondPartStartTime = DateTime.MinValue.AddHours(13).AddMinutes(10),SecondPartEndTime = DateTime.MinValue.AddHours(13).AddMinutes(55), };
-        TimeLesson fourthLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(14).AddMinutes(05), FirstPartEndTime = DateTime.MinValue.AddHours(14).AddMinutes(50), SecondPartStartTime = DateTime.MinValue.AddHours(14).AddMinutes(55),SecondPartEndTime = DateTime.MinValue.AddHours(15).AddMinutes(40), };
+        TimeLesson firstLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(8).AddMinutes(40), FirstPartEndTime = DateTime.MinValue.AddHours(9).AddMinutes(25), SecondPartStartTime = DateTime.MinValue.AddHours(9).AddMinutes(30), SecondPartEndTime = DateTime.MinValue.AddHours(10).AddMinutes(15) };
+        TimeLesson secondLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(10).AddMinutes(35), FirstPartEndTime = DateTime.MinValue.AddHours(11).AddMinutes(20), SecondPartStartTime = DateTime.MinValue.AddHours(11).AddMinutes(25), SecondPartEndTime = DateTime.MinValue.AddHours(12).AddMinutes(10), };
+        TimeLesson thirdLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(12).AddMinutes(20), FirstPartEndTime = DateTime.MinValue.AddHours(13).AddMinutes(05), SecondPartStartTime = DateTime.MinValue.AddHours(13).AddMinutes(10), SecondPartEndTime = DateTime.MinValue.AddHours(13).AddMinutes(55), };
+        TimeLesson fourthLesson = new() { FirstPartStartTime = DateTime.MinValue.AddHours(14).AddMinutes(05), FirstPartEndTime = DateTime.MinValue.AddHours(14).AddMinutes(50), SecondPartStartTime = DateTime.MinValue.AddHours(14).AddMinutes(55), SecondPartEndTime = DateTime.MinValue.AddHours(15).AddMinutes(40), };
 
         var schWeeks = Enum.GetValues<SchWeek>();
         foreach (SchWeek schWeek in schWeeks)
@@ -198,20 +202,20 @@ public static class SeedDb
         return timeLesson;
     }
 
-    static IEnumerable<HW> GetHWs()
+    static IEnumerable<Event> GetEvents()
     {
-        IEnumerable<HW> hws = new List<HW>()
+        IEnumerable<Event> events = new List<Event>()
         {
-            new(){Deadline = new DateTime(2023, 2, 15, 8, 40, 0), Description = "https://docs.google.com/document/d/11lT0V2I9kh7jMsXQaWnbWrlhMbZVeDZzq_kI-07tgvA/view",  SubjectId = 1, TeacherId= 2, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 2, 21, 12, 20, 0), Description = "https://docs.google.com/document/d/1FrDVMx_Wvovon_yvnp-HMmiIv5L5svXi0wHsIsCBkJA/view",  SubjectId = 5, TeacherId= 5, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 2, 23, 12, 20, 0), Description = "https://docs.google.com/document/d/15AvpkZaKNQ7BEQQ4tfBgOyn19GUlh4lgMyiB882KEb8/view",  SubjectId = 7, TeacherId= 5, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 2, 27, 12, 20, 0), Description = "https://docs.google.com/document/d/1CQSeGBY55MlIpU1x9tinaK6MVWX3bXlCLMDZEmij-TU/view",  SubjectId = 1, TeacherId= 2, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 2, 28, 8, 0, 0), Description = "https://docs.google.com/document/d/1Y8dt7ib61f4JUDz2LjwNaqcWU4LAIympTsBiEnd_LpQ/edit",  SubjectId = 4, TeacherId= 4, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 3, 1, 10, 35, 0), Description = "https://docs.google.com/document/d/1aYi7CPKE2bsjaj68LuFcfGtAwwEEdPSZwo_ys6471yE/view",  SubjectId = 5, TeacherId= 5, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 3, 3, 10, 35, 0), Description = "Диференціальний підсилювач, як він працює, навіщо на виході ставиться ще один транзистор і як рахувати коефіцієнти.",  SubjectId = 7, TeacherId= 5, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 3, 7, 8, 40, 0), Description = "https://docs.google.com/document/d/1delIunATe85bPZ-wrccgAL6NlAeRz8z3pbxaSlOof9I/view",  SubjectId = 4, TeacherId= 4, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
-            new(){Deadline = new DateTime(2023, 3, 9, 14, 05, 0), Description = "https://docs.google.com/document/d/1lwKkQbPTSdEEaaGdUXwTGD4JexNBWC8a9cCu4fmkEag/view",  SubjectId = 3, TeacherId= 3, TokenId = 1, TypeOfHW = TypeOfHW.Homework},
+            new(){Deadline = new DateTime(2023, 2, 15, 8, 40, 0), Description = "https://docs.google.com/document/d/11lT0V2I9kh7jMsXQaWnbWrlhMbZVeDZzq_kI-07tgvA/view",  SubjectId = 1, TeacherId= 2, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 2, 21, 12, 20, 0), Description = "https://docs.google.com/document/d/1FrDVMx_Wvovon_yvnp-HMmiIv5L5svXi0wHsIsCBkJA/view",  SubjectId = 5, TeacherId= 5, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 2, 23, 12, 20, 0), Description = "https://docs.google.com/document/d/15AvpkZaKNQ7BEQQ4tfBgOyn19GUlh4lgMyiB882KEb8/view",  SubjectId = 7, TeacherId= 5, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 2, 27, 12, 20, 0), Description = "https://docs.google.com/document/d/1CQSeGBY55MlIpU1x9tinaK6MVWX3bXlCLMDZEmij-TU/view",  SubjectId = 1, TeacherId= 2, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 2, 28, 8, 0, 0), Description = "https://docs.google.com/document/d/1Y8dt7ib61f4JUDz2LjwNaqcWU4LAIympTsBiEnd_LpQ/edit",  SubjectId = 4, TeacherId= 4, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 3, 1, 10, 35, 0), Description = "https://docs.google.com/document/d/1aYi7CPKE2bsjaj68LuFcfGtAwwEEdPSZwo_ys6471yE/view",  SubjectId = 5, TeacherId= 5, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 3, 3, 10, 35, 0), Description = "Диференціальний підсилювач, як він працює, навіщо на виході ставиться ще один транзистор і як рахувати коефіцієнти.",  SubjectId = 7, TeacherId= 5, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 3, 7, 8, 40, 0), Description = "https://docs.google.com/document/d/1delIunATe85bPZ-wrccgAL6NlAeRz8z3pbxaSlOof9I/view",  SubjectId = 4, TeacherId= 4, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
+            new(){Deadline = new DateTime(2023, 3, 9, 14, 05, 0), Description = "https://docs.google.com/document/d/1lwKkQbPTSdEEaaGdUXwTGD4JexNBWC8a9cCu4fmkEag/view",  SubjectId = 3, TeacherId= 3, TokenId = 1, TypeOfEvent = TypeOfEvent.Homework},
         };
-        return hws;
+        return events;
     }
 }

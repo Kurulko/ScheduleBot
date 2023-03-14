@@ -16,14 +16,13 @@ public record AllLessons_LessonBotCommand : LessonBotCommand
 {
     public AllLessons_LessonBotCommand() : base(new Command("/all_lessons", "All lessons")) { }
 
-    record DayLessons(string LessonsStr, bool IsToday);
 
-    IList<DayLessons> daysLessons = new List<DayLessons>();
+    IList<string> daysLessonsStr = new List<string>();
     protected internal override string ResponseLessonStr()
     {
         string result = string.Empty;
 
-        var timeLessons = timeLessonService.GetTimeLessons().OrderBy(tl => tl.DayOfWeek).ToList();
+        var timeLessons = timeLessonService.GetModels().OrderBy(tl => tl.DayOfWeek).ToList();
         int countOfTimeLessons = timeLessons.Count;
 
         if (countOfTimeLessons <= 0)
@@ -39,13 +38,11 @@ public record AllLessons_LessonBotCommand : LessonBotCommand
 
             if (timeLesson.DayOfWeek != currentDayOfWeek)
             {
-                daysLessons.Add(new(result, todayDayOfWeek == currentDayOfWeek));
+                daysLessonsStr.Add(result);
                 result = string.Empty;
                 currentDayOfWeek = timeLesson.DayOfWeek;
                 result += DisplayDayOfWeek(currentDayOfWeek);
             }
-
-
 
             string response = GetLessonStrByTimeLesson(timeLesson);
             if (!string.IsNullOrEmpty(response))
@@ -74,7 +71,7 @@ public record AllLessons_LessonBotCommand : LessonBotCommand
             }
 
             if (i == countOfTimeLessons - 1)
-                daysLessons.Add(new(result, todayDayOfWeek == currentDayOfWeek));
+                daysLessonsStr.Add(result);
         }
 
         return string.Empty;
@@ -84,11 +81,11 @@ public record AllLessons_LessonBotCommand : LessonBotCommand
     {
         Message? message = null;
         ResponseLessonStr();
-        int count = daysLessons.Count;
+        int count = daysLessonsStr.Count;
         for (int i = 0; i < count; i++)
         {
-            DayLessons dayLessons = daysLessons[i];
-            message = await bot.SendTextMessageAsync(chatId, dayLessons.LessonsStr, ParseMode.Html, replyToMessageId: dayLessons.IsToday ? replyToMessageId : null, cancellationToken: cts.Token);
+            string dayLessonStr = daysLessonsStr[i];
+            message = await SendTextMessagesIfResponseMoreMaxLengthAsync(bot, chatId, cts, dayLessonStr, i == 0 ? replyToMessageId : message!.MessageId);           
         }
         return message!;
     }

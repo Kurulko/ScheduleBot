@@ -1,4 +1,5 @@
-﻿using ScheduleBot.Database;
+﻿using Microsoft.EntityFrameworkCore;
+using ScheduleBot.Database;
 using ScheduleBot.Database.Models;
 using System;
 using System.Collections.Generic;
@@ -8,13 +9,10 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Services.ByToken;
 
-public class BreakServiceByToken : DbServiceByToken
+public class BreakServiceByToken : ServiceByToken<Break>
 {
     public BreakServiceByToken(long tokenId) : base(tokenId) { }
 
-    public IEnumerable<Break> GetBreaks()
-        => db.Breaks.Where(b => b.TokenId == tokenId).ToList();
-
-    public Break? GetBreakById(long id)
-        => GetBreaks().FirstOrDefault(b => b.TokenId == tokenId && b.Id == id);
+    public override DbSet<Break> GetAllModels()
+        => db.Breaks;
 }

@@ -19,16 +19,4 @@ public record Stop_MainBotCommand : OnceBotCommand
 
     protected override string ResponseStr()
         => "Good bye!";
-
-    public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
-    {
-        string responseStr = $"<b>{ResponseStr()}</b>";
-        Message message =  await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
-
-        //cts.Cancel();
-        //await bot.CloseAsync();
-
-        return message;
-    }
-
 }

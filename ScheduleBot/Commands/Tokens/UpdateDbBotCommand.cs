@@ -15,55 +15,26 @@ using ScheduleBot.Commands.Interfaces;
 using ScheduleBot.Bot;
 using Microsoft.EntityFrameworkCore;
 using ScheduleBot.Services.Common;
+using ScheduleBot.Services;
 
 namespace ScheduleBot.Commands.Tokens;
 
 public record UpdateDbBotCommand : OnceBotCommand
 {
-    public UpdateDbBotCommand() : base(new Command("/update_db", "Update db")) { }
+    public UpdateDbBotCommand() : base(new Command("/update_db", "Update database")) { }
 
     protected override string ResponseStr()
          => "<b>Database successfully updated!</b>";
 
     async Task UpdateDbByTokenAsync(ChatId chatId)
     {
-        using ScheduleContext db = new();
-
         ChatService chatService = new();
         TelegramChat chat = chatService.GetChatByChat(chatId.Identifier!.Value)!;
 
-        Token token = db.Tokens.Include(t => t.Conferences).Include(t => t.Subjects).Include(t => t.Breaks).Include(t => t.Teachers).Include(t => t.TimeLessons).Include(t => t.HWs).First(t => t.Id == chat.TokenId);
+        ModelsService.DeleteAllModelsByTokenId(chat.TokenId!.Value);
 
-        if (token.Conferences is not null)
-        {
-            db.Conferences.RemoveRange(token.Conferences);
-            db.SaveChanges();
-        }
-        if (token.Subjects is not null)
-        {
-            db.Subjects.RemoveRange(token.Subjects);
-            db.SaveChanges();
-        }
-        if (token.Breaks is not null)
-        {
-            db.Breaks.RemoveRange(token.Breaks);
-            db.SaveChanges();
-        }
-        if (token.Teachers is not null)
-        {
-            db.Teachers.RemoveRange(token.Teachers);
-            db.SaveChanges();
-        }
-        if (token.TimeLessons is not null)
-        {
-            db.TimeLessons.RemoveRange(token.TimeLessons);
-            db.SaveChanges();
-        }
-        if (token.HWs is not null)
-        {
-            db.HWs.RemoveRange(token.HWs);
-            db.SaveChanges();
-        }
+        TokenService tokenService = new();
+        Token token = tokenService.GetTokenByIdIncludeAllModels(chat.TokenId!.Value)!;
 
         await SeedDbFromExcel.SeedDbAsync(token);
     }
@@ -72,6 +43,6 @@ public record UpdateDbBotCommand : OnceBotCommand
     {
         string responseStr = ResponseStr();
         await UpdateDbByTokenAsync(chatId);
-        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+        return await SendTextMessagesIfResponseMoreMaxLengthAsync(bot, chatId, cts, responseStr, replyToMessageId); ;
     }
 }

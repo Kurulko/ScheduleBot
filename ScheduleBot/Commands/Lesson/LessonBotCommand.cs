@@ -33,14 +33,46 @@ public abstract record LessonBotCommand : OnceBotCommand
 
         try
         {
-            TimeLesson2 searchLesson = (TimeLesson2)timeLessonService.GetTimeLessonById(lastLesson!.Id + numberOfLection)!;
-            return searchLesson;
+            DateTime now = DateTime.Now;
+            bool isFound = false;
+            long counfFromFound = 0;
+            bool isNumberMoreThanZero = numberOfLection >= 0;
+            while (true)
+            {
+                SchWeek currentShweek = SchWeekExtensions.GetSchWeekByDate(now);
+                var lessonsWithoutSort = timeLessonService.GetModels().Where(m => m.SchWeek == SchWeek.Always || m.SchWeek == currentShweek);
+                var lessons = (isNumberMoreThanZero ? lessonsWithoutSort.OrderBy(l => l.DayOfWeek).ThenBy(l => l.FirstPartStartTime) : lessonsWithoutSort.OrderByDescending(l => l.DayOfWeek).ThenByDescending(l => l.FirstPartStartTime)).ToList();
+
+                for (int i = 0; i < lessons.Count; i++)
+                {
+                    if(isFound)
+                    {
+                        if (counfFromFound != numberOfLection)
+                            counfFromFound = isNumberMoreThanZero ? counfFromFound + 1 : counfFromFound - 1;
+                        else
+                            return (TimeLesson2)lessons[i - 1];
+
+                        if (counfFromFound == numberOfLection)
+                            return (TimeLesson2)lessons[i];
+                    }
+                    else if(lastLesson.Id == lessons[i].Id)
+                    {
+                        isFound = true;
+                    }
+                }
+
+                int oneWeek = 7;
+                now.AddDays(isNumberMoreThanZero ? oneWeek : -1 * oneWeek);
+            }
+
+            //TimeLesson2 searchLesson = (TimeLesson2)timeLessonService.GetModelById(lastLesson!.Id + numberOfLection)!;
+            //TimeLesson2 searchLesson = (TimeLesson2)timeLessonService.GetModels().Where(m => m.SchWeek == SchWeek.Always || m.SchWeek == SchWeekExtensions.GetSchWeekNow()).First(lt => lt.Id == lastLesson!.Id + numberOfLection)!;
+            //return searchLesson!;
         }
         catch
         {
             throw BotScheduleException.LessonNotFound();
         }
-
     }
 
     protected internal string GetLessonStrByTimeLesson(TimeLesson2 lesson)
@@ -52,7 +84,7 @@ public abstract record LessonBotCommand : OnceBotCommand
     protected TimeLesson2? GetLastLesson()
     {
         DateTime last = DateTime.Now;
-        DateTime first = timeLessonService.GetTimeLessons().Min(tl => tl.FirstPartStartTime);
+        DateTime first = timeLessonService.GetModels().Min(tl => tl.FirstPartStartTime);
         while (last >= first)
         {
             TimeLesson2? timeLesson = GetTimeLessonByDateTime(last);
@@ -86,8 +118,8 @@ public abstract record LessonBotCommand : OnceBotCommand
         Conference? conference = conferenceService.GetConferencesByIdIncludeTeacherAndSubject(time.ConferenceId);
         if (conference is not null)
         {
-            Subject? subject = subjectService.GetSubjectById(conference.SubjectId!.Value);
-            Teacher? teacher = teacherService.GetTeacherById(conference.TeacherId!.Value);
+            Subject? subject = conference.SubjectId is not null ? subjectService.GetModelById(conference.SubjectId!.Value) : null;
+            Teacher? teacher = conference.TeacherId is not null ? teacherService.GetModelById(conference.TeacherId!.Value) : null;
 
             return (conference, subject, teacher);
         }

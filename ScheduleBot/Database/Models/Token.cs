@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Database.Models;
 
-public class Token
+public class Token : DbModel
 {
-    public long Id { get; set; }
     public string Name { get; set; } = null!;
     
     public IEnumerable<Subject>? Subjects { get; set; }
@@ -17,7 +16,7 @@ public class Token
     public IEnumerable<TimeLesson>? TimeLessons { get; set; }
     public IEnumerable<Conference>? Conferences { get; set; }
     public IEnumerable<Break>? Breaks { get; set; }
-    public IEnumerable<HW>? HWs { get; set; }
+    public IEnumerable<Event>? Events { get; set; }
     public IEnumerable<TelegramChat>? Chats { get; set; }
 
 }

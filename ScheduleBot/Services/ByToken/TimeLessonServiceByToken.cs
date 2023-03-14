@@ -8,17 +8,16 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Services.ByToken;
 
-public class TimeLessonServiceByToken : DbServiceByToken
+public class TimeLessonServiceByToken : ServiceByToken<TimeLesson>
 {
     public TimeLessonServiceByToken(long tokenId) : base(tokenId) { }
 
-    public IEnumerable<TimeLesson> GetTimeLessons()
-        => db.TimeLessons.Where(b => b.TokenId == tokenId).ToList();
+    public override DbSet<TimeLesson> GetAllModels()
+        => db.TimeLessons;
     public IEnumerable<TimeLesson> GetTimeLessonsIncludeConference()
-        => db.TimeLessons.Include(tl => tl.Conference).Where(b => b.TokenId == tokenId).ToList();
+    => GetAllModels().Include(tl => tl.Conference).Where(b => b.TokenId == tokenId).ToList();
 
-    public TimeLesson? GetTimeLessonById(long id)
-        => GetTimeLessons().FirstOrDefault(b => b.Id == id);
     public TimeLesson? GetTimeLessonByIdIncludeConference(long id)
-        => GetTimeLessonsIncludeConference().FirstOrDefault(b => b.Id == id);
+    => GetTimeLessonsIncludeConference().FirstOrDefault(b => b.Id == id);
+
 }

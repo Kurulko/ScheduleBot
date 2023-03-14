@@ -29,7 +29,7 @@ public record AddTokenBotCommand : OnceBotCommand
         if (string.IsNullOrEmpty(tokenStr))
             throw BotScheduleException.IncorrectExpression(); 
 
-        return "<b>Thanks, welcome!</b>";
+        return "<b>Thanks, welcome!</b>\nRead more about <a href=\"https://github.com/Kurulko/ScheduleBot/blob/master/README.md\">the token</a>";
     }
 
     string GetTokenStr()
@@ -47,23 +47,23 @@ public record AddTokenBotCommand : OnceBotCommand
         TelegramChat chat = chatService.GetChatByChat(chatId.Identifier!.Value)!;
 
         TokenService tokenService = new();
-        Token? token = tokenService.GetTokensByTokenName(tokenStr);
+        Token? token = tokenService.GetTokenByTokenName(tokenStr);
         if (token is null)
         {
             token = new() { Name = tokenStr };
-            tokenService.AddToken(token);
+            tokenService.AddModel(token);
 
             await SeedDbFromExcel.SeedDbAsync(token);
         }
 
         chat.TokenId = token!.Id;
-        chatService.UpdateChat(chat);
+        chatService.UpdateModel(chat);
     }
 
     public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
     {
         string responseStr = ResponseStr();
         await AddTokenToChatAsync(chatId);
-        return await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
+        return await SendTextMessagesIfResponseMoreMaxLengthAsync(bot, chatId, cts, responseStr, replyToMessageId); ;
     }
 }
