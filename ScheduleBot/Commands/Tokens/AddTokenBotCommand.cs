@@ -20,7 +20,7 @@ namespace ScheduleBot.Commands.Tokens;
 
 public record AddTokenBotCommand : OnceBotCommand
 {
-    public AddTokenBotCommand() : base(new Command("/add_token_{YOUR_TOKEN}", "Your token for using this bot", @"\/add_token_(.+)")) { }
+    public AddTokenBotCommand() : base(new Command("/add_token_{YOUR_TOKEN}", "Add/change the token for this chat", @"\/add_token_(.+)")) { }
 
     string tokenStr = null!;
     protected override string ResponseStr()

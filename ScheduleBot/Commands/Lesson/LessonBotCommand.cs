@@ -25,7 +25,7 @@ public abstract record LessonBotCommand : OnceBotCommand
         TimeLesson2? searchLesson = GetSomeLessonByNumber(numberOfLection);
         return GetLessonStrByTimeLesson(searchLesson);
     }
-    protected TimeLesson2 GetSomeLessonByNumber(long numberOfLection)
+    protected internal TimeLesson2 GetSomeLessonByNumber(long numberOfLection)
     {
         TimeLesson2? lastLesson = GetLastLesson();
         if (lastLesson is null)
@@ -90,7 +90,8 @@ public abstract record LessonBotCommand : OnceBotCommand
             TimeLesson2? timeLesson = GetTimeLessonByDateTime(last);
             if (timeLesson is not null)
                 return timeLesson;
-            last = last.AddHours(-ScheduleSettings.LongLessonHours.TotalHours);
+            last = last.AddMinutes(-1);
+            //last = last.AddHours(-ScheduleSettings.LongLessonHours.TotalHours);
         }
         return default;
     }

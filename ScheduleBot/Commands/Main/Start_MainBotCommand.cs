@@ -22,7 +22,7 @@ public record Start_MainBotCommand : MainBotCommand, IAllActions
     protected override string ResponseStr()
     {
         SetReplyKeyboardMarkup();
-        return "<b>Welcome to my app.\nRead about <a href=\"https://github.com/Kurulko/ScheduleBot/blob/master/README.md\">this bot</a></b>";
+        return "<b>Welcome to my app.</b>\nRead about <a href=\"https://github.com/Kurulko/ScheduleBot/blob/master/README.md\">this bot</a>";
     }
 
     void SetReplyKeyboardMarkup()

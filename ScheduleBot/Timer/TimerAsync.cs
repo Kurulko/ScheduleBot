@@ -22,7 +22,7 @@ public class TimerAsync
         while (true)
         {
             if (cts.IsCancellationRequested)
-                break;
+                return;
 
             action();
 

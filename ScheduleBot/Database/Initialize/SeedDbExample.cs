@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ScheduleBot.Database.Models;
+using ScheduleBot.Services.ByToken;
 using ScheduleBot.Services.Common;
 using System;
 using System.Collections.Generic;
@@ -67,16 +68,51 @@ public static class SeedDbExample
 
     static IEnumerable<Break> GetBreaks()
     {
+        long tokenId = 1;
+        BreakServiceByToken breakServiceByToken = new(tokenId);
+        TimeLessonServiceByToken timeLessonServiceByToken = new(tokenId);
+
         IList<Break> breaks = new List<Break>();
 
-        foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+        IList<TimeLesson> timeLessons = timeLessonServiceByToken.GetModels().OrderBy(tl => tl.DayOfWeek).ToList();
+        int countOfTimeLessons = timeLessons.Count;
+        for (int i = 0; i < countOfTimeLessons - 1; i++)
         {
-            breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(10).AddMinutes(15), EndTime = DateTime.MinValue.AddHours(10).AddMinutes(35), TokenId = 1, DayOfWeek = day });
-            breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(12).AddMinutes(10), EndTime = DateTime.MinValue.AddHours(12).AddMinutes(20), TokenId = 1, DayOfWeek = day });
-            breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(13).AddMinutes(55), EndTime = DateTime.MinValue.AddHours(14).AddMinutes(05), TokenId = 1, DayOfWeek = day });
+            Break rest = new();
+
+            TimeLesson currentTimeLesson = timeLessons[i];
+
+            rest.StartTime = currentTimeLesson.SecondPartEndTime;
+
+            if (i != countOfTimeLessons - 2)
+            {
+                TimeLesson nextTimeLesson = timeLessons[i + 1];
+                if (nextTimeLesson.DayOfWeek == currentTimeLesson.DayOfWeek)
+                {
+                    rest.EndTime = nextTimeLesson.FirstPartStartTime;
+                    rest.DayOfWeek = nextTimeLesson.DayOfWeek;
+                }
+                else
+                    continue;
+            }
+
+            rest.TokenId = tokenId;
+
+            breaks.Add(rest);
         }
 
         return breaks;
+
+        //IList<Break> breaks = new List<Break>();
+
+        //foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+        //{
+        //    breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(10).AddMinutes(15), EndTime = DateTime.MinValue.AddHours(10).AddMinutes(35), TokenId = 1, DayOfWeek = day });
+        //    breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(12).AddMinutes(10), EndTime = DateTime.MinValue.AddHours(12).AddMinutes(20), TokenId = 1, DayOfWeek = day });
+        //    breaks.Add( new Break() { StartTime = DateTime.MinValue.AddHours(13).AddMinutes(55), EndTime = DateTime.MinValue.AddHours(14).AddMinutes(05), TokenId = 1, DayOfWeek = day });
+        //}
+
+        //return breaks;
     }
     static IEnumerable<Teacher> GetTeachers()
     {

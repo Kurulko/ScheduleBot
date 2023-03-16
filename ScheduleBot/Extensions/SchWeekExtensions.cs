@@ -11,7 +11,7 @@ namespace ScheduleBot.Extensions;
 public static class SchWeekExtensions
 {
     public static SchWeek GetSchWeekNow()
-        => DateTimeExtensions.GetSchWeekNowByStartSemester(ScheduleSettings.StartedSemester);
+        => DateTimeExtensions.GetSchWeekNowByStartSemester(ScheduleSettings.DefaultStartedSemester);
     public static SchWeek GetSchWeekByDate(DateTime dateTime)
-        => DateTimeExtensions.GetSchWeekDateByStartSemester(ScheduleSettings.StartedSemester, dateTime);
+        => DateTimeExtensions.GetSchWeekDateByStartSemester(ScheduleSettings.DefaultStartedSemester, dateTime);
 }
