@@ -1,6 +1,9 @@
 # ScheduleBot!
 
-About the token:
+## Telegram bot for university subject schedule
+
+To use this bot, you should have the schedule's token<br/>
+About the token:<br/>
 1) Firsty you need to create the file in google sheets<br/>
 2) Your token:<br/>
 ![token](https://user-images.githubusercontent.com/95112563/225616052-ff120be0-b1c7-49cf-bb7d-6bc19cbb17b7.jpg)<br/><br/>
@@ -16,7 +19,7 @@ About the token:
   d) Column 'Subjects':<br/>
     Just the subject's name<br/>
   e) Columns 'Numberator', 'Denominator', 'Always':<br/>
-    If this subject is always, all these three colums must have value 'true'<br/>
+      If this subject is always, all these three colums must have value 'true'<br/>
     If this subject is only numberator, only this colum must have value 'true', others 'false'<br/>
     If this subject is only denominator, only this colum must have value 'true', others 'false'<br/>
   f) Column 'Weekday':<br/>
