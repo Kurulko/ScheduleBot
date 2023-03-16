@@ -5,7 +5,7 @@
 
 #My ignore data
 **/Settings
-**/Database/Initialize/SeedDbExample
+ScheduleBot/Database/Initialize/SeedDbExample
 
 # User-specific files
 *.rsuser
@@ -365,3 +365,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/ScheduleBot/Database/Initialize/SeedDbExample.cs
