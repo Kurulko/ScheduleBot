@@ -12,6 +12,6 @@ namespace ScheduleBot.Commands.HWs.Some;
 
 public record Meetings_DayBeforeEvents_EventBotCommand : DayBeforeEvents_EventBotCommand
 {
-    public Meetings_DayBeforeEvents_EventBotCommand() : base(new Command("/meetings_before_today_{number}", "..", @"\/meetings_before_today_(\d{1,3})"), TypesOfEvents.TypesOfMeetings) { }
+    public Meetings_DayBeforeEvents_EventBotCommand() : base(new Command("/meetings_before_today_{number}", "The meetings were {number} days ago", @"\/meetings_before_today_(\d{1,3})"), TypesOfEvents.TypesOfMeetings) { }
 
 }

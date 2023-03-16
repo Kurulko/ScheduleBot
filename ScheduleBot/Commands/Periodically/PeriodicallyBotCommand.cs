@@ -62,11 +62,22 @@ public abstract record PeriodicallyBotCommand : BotCommand, IPeriodicallyAction
     void Stop()
         => timerAsync.Stop();
 
+    static Dictionary<ChatId, CancellationTokenSource> ctses = new();
     public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)
     {
         string responseStr = $"{mode}: {Command.Description}";
 
-        CancellationTokenSource cts2 = new();
+        CancellationTokenSource cts2;
+        if (ctses.ContainsKey(chatId))
+        {
+            cts2 = ctses[chatId];
+        }
+        else
+        {
+            cts2 = new CancellationTokenSource();
+            ctses.Add(chatId, cts2);
+        }
+
         timerAsync = new(() => DoPeriodicallyActionInTelegram(bot, chatId.Identifier!.Value, cts2), ScheduleSettings.PeriodOfUpdatingData, cts2);
 
         if (mode == PeriodicallyModes.Start)

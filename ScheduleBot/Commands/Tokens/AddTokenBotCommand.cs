@@ -47,6 +47,8 @@ public record AddTokenBotCommand : OnceBotCommand
         TelegramChat chat = chatService.GetChatByChat(chatId.Identifier!.Value)!;
 
         TokenService tokenService = new();
+        Token token1 = new() { Name = tokenStr };
+
         Token? token = tokenService.GetTokenByTokenName(tokenStr);
         if (token is null)
         {
@@ -55,6 +57,7 @@ public record AddTokenBotCommand : OnceBotCommand
 
             await SeedDbFromExcel.SeedDbAsync(token);
         }
+
 
         chat.TokenId = token!.Id;
         chatService.UpdateModel(chat);

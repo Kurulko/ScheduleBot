@@ -156,7 +156,7 @@ public class SeedDbFromExcel
     {
         ConferenceServiceByToken conferenceServiceByToken = new(tokenId);
 
-        Conference? _conference = conferenceServiceByToken.GetModels().FirstOrDefault(c => c.Link == conference.Link);
+        Conference? _conference = conferenceServiceByToken.GetModels().FirstOrDefault(c => c.Link == conference.Link && c.TeacherId == teacherId && c.SubjectId == subjectId);
         if (_conference is null)
         {
             conference.TeacherId = teacherId;
@@ -339,18 +339,23 @@ public class SeedDbFromExcel
         Teacher teacher = new();
         teacher.TokenId = tokenId;
 
-        string characters = "[a-zA-Zа-яА-ЯёЁЇїІіЄєҐґ]";
-        Regex regex = new("(" + characters + @"{3,}|" + characters + @"{3,}\s+" + characters + @"{3,})\s+(" + characters + @"{1,})\.{0,1}\s*(" + characters + "*)");
-        if (regex.IsMatch(teacherStr))
-        {
-            var groups = regex.Match(teacherStr).Groups;
-
-            teacher.LastName = groups[1].Value;
-            teacher.FirstName = groups[2].Value;
-            teacher.FatherName = groups[3].Value;
-        }
-        else
+        if (string.IsNullOrEmpty(teacherStr))
             teacher.LastName = "Unknown";
+        else
+        {
+            string characters = @"[a-zA-Zа-яА-ЯёЁЇїІіЄєҐґ\']";
+            Regex regex = new("(" + characters + @"{3,}|" + characters + @"{3,}\s+" + characters + @"{3,})\s+(" + characters + @"{1,})\.{0,1}\s*(" + characters + "*)");
+            if (regex.IsMatch(teacherStr))
+            {
+                var groups = regex.Match(teacherStr).Groups;
+
+                teacher.LastName = groups[1].Value;
+                teacher.FirstName = groups[2].Value;
+                teacher.FatherName = groups[3].Value;
+            }
+            else
+                throw new BotScheduleException("Inccorect teacher's name");
+        }
 
         return teacher;
     }
@@ -358,7 +363,7 @@ public class SeedDbFromExcel
     {
         Conference conference = new();
 
-        conference.Link = conferenceStr;
+        conference.Link = string.IsNullOrEmpty(conferenceStr) ? "Unknown" : conferenceStr;
         conference.TokenId = tokenId;
 
         return conference;
@@ -367,7 +372,7 @@ public class SeedDbFromExcel
     {
         Subject subject = new();
 
-        subject.Name = string.IsNullOrEmpty(subjectStr) ? "Unknown" : subjectStr;
+        subject.Name = subjectStr;
         subject.TokenId = tokenId;
 
         return subject;

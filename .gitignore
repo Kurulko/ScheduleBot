@@ -5,7 +5,7 @@
 
 #My ignore data
 **/Settings
-**/Database/Initialize/SeedData.cs
+**/Database/Initialize/SeedDbExample.cs
 
 # User-specific files
 *.rsuser
