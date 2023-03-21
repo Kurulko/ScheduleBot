@@ -43,14 +43,11 @@ public abstract record BotCommand(Command Command)
         int maxLength = TelegramSettings.MaxLengthOfMessage;
         var responsesStr = responseStr.DevideStrIfMoreMaxLength(maxLength).ToList();
         for (int i = 0; i < responsesStr.Count(); i++)
-        {
-            message = await bot.SendTextMessageAsync(chatId, $"<b>{responsesStr[i]}</b>", ParseMode.Html, replyToMessageId: i == 0 ? replyToMessageId : message.MessageId, cancellationToken: cts.Token);
-        }
-
+            message = await SendTextMessageAsync(bot, chatId, cts, $"<b>{responsesStr[i]}</b>", i == 0 ? replyToMessageId : message.MessageId);
 
         return message;
     }
 
-    async Task<Message> SendTextMessageAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, string responseStr, int? replyToMessageId = null)
+    protected virtual async Task<Message> SendTextMessageAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, string responseStr, int? replyToMessageId = null)
         => await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token);
 }

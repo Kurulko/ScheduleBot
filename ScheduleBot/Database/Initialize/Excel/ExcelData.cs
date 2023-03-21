@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ScheduleBot.Database.Initialize.Excel;
 
-public class ExcelData
+public record ExcelData
 {
     [JsonProperty("range")]
     public string? Range { get; set; }

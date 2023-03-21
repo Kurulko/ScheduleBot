@@ -6,6 +6,7 @@ using ScheduleBot.Extensions;
 using ScheduleBot.Services.Common;
 using ScheduleBot.Settings;
 using ServiceStack.Messaging;
+using ServiceStack.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -63,24 +65,51 @@ public class StartBot
             catch (BotScheduleException botExc)
             {
                 string messageExc = botExc.Message;
-                int maxLength = TelegramSettings.MaxLengthOfMessage;
-                var responsesStr = messageExc.DevideStrIfMoreMaxLength(maxLength).ToList();
-                for (int i = 0; i < responsesStr.Count(); i++)
+                await SendMessageAsync(messageExc, chatId, replyToMessageId, cts);
+            }
+            catch (ApiRequestException ex)
+            {
+                int delay = ex.Parameters?.RetryAfter ?? 0;
+                if (delay > 0)
                 {
-                    message = await bot.SendTextMessageAsync(chatId, $"<b>{responsesStr[i]}</b>", ParseMode.Html, replyToMessageId: i == 0 ? replyToMessageId : message.MessageId, cancellationToken: cts.Token);
+                    ConsoleExtensions.WriteLineWithColor($"Error: Too many requests. Waiting for {delay} seconds.", ConsoleColor.DarkYellow);
+                    Task.Delay(delay * 1000).Wait();
                 }
+
+                await SendMessageAsync(messageText, chatId, replyToMessageId, cts);
             }
             catch (Exception exc)
             {
-                ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
+                ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.DarkBlue);
                 //await StopBotAsync(cts);
             }
+        }
+    }
+    async Task SendMessageAsync(string messageStr, long chatId, int replyToMessageId, CancellationTokenSource cts)
+    {
+        int maxLength = TelegramSettings.MaxLengthOfMessage;
+        var responsesStr = messageStr.DevideStrIfMoreMaxLength(maxLength).ToList();
+        Telegram.Bot.Types.Message message = new();
+        for (int i = 0; i < responsesStr.Count(); i++)
+        {
+            message = await bot.SendTextMessageAsync(chatId, $"<b>{responsesStr[i]}</b>", ParseMode.Html, replyToMessageId: i == 0 ? replyToMessageId : message.MessageId, cancellationToken: cts.Token);
         }
     }
 
     Task HandlePollingErrorAsync(Exception exc, CancellationTokenSource cts)
     {
-        ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
+        if (exc is ApiRequestException ex)
+        {
+            int delay = ex.Parameters?.RetryAfter ?? 0;
+            if (delay > 0)
+            {
+                ConsoleExtensions.WriteLineWithColor($"Error: Too many requests. Waiting for {delay} seconds.", ConsoleColor.Red);
+                Task.Delay(delay * 1000).Wait();
+            }
+        }
+        else
+            ConsoleExtensions.WriteLineWithColor($"Error: {exc.Message}", ConsoleColor.Red);
+
         return Task.CompletedTask;
         //await StopBotAsync(cts);
     }

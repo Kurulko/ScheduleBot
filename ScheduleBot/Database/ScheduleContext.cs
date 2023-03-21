@@ -38,7 +38,7 @@ public class ScheduleContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        string connectionStr = "Server=(localdb)\\mssqllocaldb; Database=Schedule_v_7; Trusted_Connection=True; MultipleActiveResultSets=true";
+        string connectionStr = "Server=(localdb)\\mssqllocaldb; Database=Schedule_v12; Trusted_Connection=True; MultipleActiveResultSets=true";
         optionsBuilder.UseSqlServer(connectionStr);
     }
 }

@@ -33,4 +33,6 @@ public record Start_MainBotCommand : MainBotCommand, IAllActions
             replyKeyboardMarkup = new(popularActions) { ResizeKeyboard = true };
         }
     }
+    protected override async Task<Message> SendTextMessageAsync(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, string responseStr, int? replyToMessageId = null)
+        => await bot.SendTextMessageAsync(chatId, responseStr, ParseMode.Html, replyToMessageId: replyToMessageId, cancellationToken: cts.Token, replyMarkup: replyKeyboardMarkup);
 }

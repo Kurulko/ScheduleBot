@@ -37,7 +37,7 @@ public record GettingCurrentLesson_LessonBotCommand : PeriodicallyBotCommand
         }
     }
 
-    ITelegramBotClient bot = null!; long chatId; CancellationTokenSource cts = null!; bool isSend = false; int? messageId = null; CurrentLesson_LessonBotCommand currentLesson_LessonBotCommand = new(); bool wasPreviuosBreak = false;
+    ITelegramBotClient bot = null!; long chatId; CancellationTokenSource cts = null!; bool isSend = false; int? messageId = null; CurrentLesson_LessonBotCommand currentLesson_LessonBotCommand = new(); bool wasPreviuosBreak = false; bool isFirstTime = true;
 
     async void SendCurrentLessonAndDeleteWhenFinish()
     {
@@ -62,12 +62,13 @@ public record GettingCurrentLesson_LessonBotCommand : PeriodicallyBotCommand
     }
     async Task SendMessageAsync(bool isBreakNow)
     {
-        if (this.wasPreviuosBreak != isBreakNow && !this.isSend )
+        if ((this.wasPreviuosBreak != isBreakNow || isFirstTime) && !this.isSend )
         {
             string responseStr = currentLesson_LessonBotCommand.ResponseLessonStr();
             this.messageId = (await this.bot.SendTextMessageAsync(this.chatId, responseStr!, ParseMode.Html, cancellationToken: cts.Token)).MessageId;
 
             this.isSend = true;
+            this.isFirstTime = false;
         }
     }
     public void SetServicesByChatId(Interfaces.BotCommand botCommand, ChatId chatId)

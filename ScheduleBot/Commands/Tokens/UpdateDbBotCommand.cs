@@ -31,12 +31,10 @@ public record UpdateDbBotCommand : OnceBotCommand
         ChatService chatService = new();
         TelegramChat chat = chatService.GetChatByChat(chatId.Identifier!.Value)!;
 
-        ModelsService.DeleteAllModelsByTokenId(chat.TokenId!.Value);
-
         TokenService tokenService = new();
         Token token = tokenService.GetTokenByIdIncludeAllModels(chat.TokenId!.Value)!;
 
-        await SeedDbFromExcel.SeedDbAsync(token);
+        await SeedDbFromExcel.SeedDbAsync(token, true);
     }
 
     public override async Task<Message> SendResponseHtml(ITelegramBotClient bot, ChatId chatId, CancellationTokenSource cts, int? replyToMessageId = null)

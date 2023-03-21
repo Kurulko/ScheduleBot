@@ -11,7 +11,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using ScheduleBot.Database.Initialize;
 using ScheduleBot.Extensions;
 
-SeedDbExample.SeedExampleData();
+//SeedDbExample.SeedExampleData();
 
 StartBot bot = new();
 

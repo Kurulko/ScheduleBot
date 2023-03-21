@@ -18,6 +18,8 @@ namespace ScheduleBot.Database.Initialize.Excel;
 
 public class SeedDbFromExcel
 {
+    static Dictionary<string, ExcelData> ExcelLessonsByTokens = new();
+    static Dictionary<string, ExcelData> ExcelEventsByTokens = new();
     static void IfThrownException(Token token)
     {
         ModelsService.DeleteAllModelsByTokenId(token.Id);
@@ -25,20 +27,45 @@ public class SeedDbFromExcel
         tokenService.RemoveModel(token);
     }
 
-    public static async Task SeedDbAsync(Token token)
+    public static async Task SeedDbAsync(Token token, bool isDeletePreviousData = false)
     {
         try
         {
+            string tokenName = token.Name;
+
             HttpClient httpClient = new HttpClient();
-            string url = $"https://sheets.googleapis.com/v4/spreadsheets/{token.Name}/values/" + "{0}!A2:" + $"H{ExcelSettings.CountOfRows}?key={ExcelSettings.APIKey}";
+            string url = $"https://sheets.googleapis.com/v4/spreadsheets/{tokenName}/values/" + "{0}!A2:" + $"H{ExcelSettings.CountOfRows}?key={ExcelSettings.APIKey}";
 
             ExcelData? excelLessons = await httpClient.GetFromJsonAsync<ExcelData>(string.Format(url, "Lessons"));
-            ParseLessonsData(excelLessons!, token.Id);
-
             ExcelData? excelEvents = await httpClient.GetFromJsonAsync<ExcelData>(string.Format(url, "Events"));
-            ParseEventsData(excelEvents!, token.Id);
+            if(excelLessons is null || excelLessons is null)
+                throw BotScheduleException.IncorrectToken();
 
-            AddBreaksToDbByToken(token.Id);
+            bool isNotContainsLessons = !ExcelLessonsByTokens.ContainsKey(tokenName), isNotContainsEvents = !ExcelEventsByTokens.ContainsKey(tokenName);
+            if (isNotContainsLessons)
+                ExcelLessonsByTokens.Add(tokenName, excelLessons);
+            if (isNotContainsEvents)
+                ExcelEventsByTokens.Add(tokenName, excelEvents!);
+
+            bool isNewLessons =  ExcelLessonsByTokens[tokenName] != excelLessons, isNewEvents = ExcelEventsByTokens[tokenName] != excelEvents;
+            await Console.Out.WriteLineAsync($"{isNewLessons || isNotContainsLessons}");
+            await Console.Out.WriteLineAsync($"{isNewEvents || isNotContainsEvents}");
+
+            if (isDeletePreviousData && isNewLessons && isNewEvents)
+                ModelsService.DeleteAllModelsByTokenId(token.Id);
+
+            if (isNewLessons || isNotContainsLessons)
+            {
+                ParseLessonsData(excelLessons!, token.Id);
+                AddBreaksToDbByToken(token.Id);
+                ExcelLessonsByTokens[tokenName] = excelLessons;
+            }
+
+            if (isNewEvents || isNotContainsEvents)
+            {
+                ParseEventsData(excelEvents!, token.Id);
+                ExcelEventsByTokens[tokenName] = excelLessons;
+            }
         }
         catch(BotScheduleException)
         {
